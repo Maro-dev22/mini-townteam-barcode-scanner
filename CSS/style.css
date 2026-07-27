@@ -1,0 +1,218 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+
+    background:#f4f6f9;
+
+    display:flex;
+    justify-content:center;
+
+    padding:20px;
+
+}
+
+.container{
+
+    width:100%;
+    max-width:500px;
+
+}
+
+header{
+
+    text-align:center;
+    margin-bottom:20px;
+
+}
+
+.logo{
+
+    width:180px;
+    margin-bottom:10px;
+
+}
+
+header h1{
+
+    color:#1f2d6b;
+
+}
+
+.card{
+
+    background:white;
+
+    padding:20px;
+
+    border-radius:15px;
+
+    margin-bottom:18px;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.08);
+
+}
+
+.card h2{
+
+    color:#1f2d6b;
+    margin-bottom:15px;
+
+}
+
+input[type=file]{
+
+    width:100%;
+
+}
+
+button{
+
+    width:100%;
+
+    padding:16px;
+
+    border:none;
+
+    border-radius:10px;
+
+    background:#1f2d6b;
+
+    color:white;
+
+    font-size:20px;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+}
+
+button:hover{
+
+    background:#c3213b;
+
+}
+
+#barcodeInput{
+
+    width:100%;
+
+    margin-top:15px;
+
+    padding:15px;
+
+    border-radius:10px;
+
+    border:1px solid #ccc;
+
+    text-align:center;
+
+    font-size:18px;
+
+}
+
+#video{
+
+    margin-top:15px;
+
+    border-radius:10px;
+
+    border:2px solid #1f2d6b;
+
+}
+
+/* Details */
+
+.details h3{
+
+    margin-top:18px;
+
+    color:#1f2d6b;
+
+    font-size:18px;
+
+}
+
+.details p{
+
+    margin-top:8px;
+
+    font-size:24px;
+
+    font-weight:bold;
+
+    color:#222;
+
+    word-break:break-word;
+
+}
+
+/* Mobile */
+
+@media(max-width:600px){
+
+    .logo{
+
+        width:150px;
+
+    }
+
+    header h1{
+
+        font-size:22px;
+
+    }
+
+    .card{
+
+        padding:15px;
+
+    }
+
+    .details p{
+
+        font-size:20px;
+
+    }
+
+    button{
+
+        font-size:18px;
+
+    }
+
+}
+/* Status */
+
+.found{
+
+    color: #16a34a;
+    font-weight: bold;
+
+}
+
+.not-found{
+
+    color: #dc2626;
+    font-weight: bold;
+
+}
+
+.already{
+
+    color: #ca8a04;
+    font-weight: bold;
+
+}
+
+.scanning{
+
+    color: #2563eb;
+    font-weight: bold;
+
+}

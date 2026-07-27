@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MINI TOWNTEAM - Barcode Scanner</title>
+
+<link rel="stylesheet" href="css/style.css"></head>
+
+<body>
+
+  <div class="container">
+
+    <header>
+      <img src="town.jpeg" alt="MINI TOWNTEAM Logo" class="logo">
+      <h1>Barcode Scanner</h1>
+    </header>
+
+    <!-- Upload Excel -->
+    <section class="card">
+      <h2>Upload Excel</h2>
+
+      <input
+        type="file"
+        id="excelFile"
+        accept=".xlsx,.xls">
+    </section>
+
+    <!-- Scanner -->
+    <section class="card">
+
+      <button id="scanBtn">
+        📷 Scan Item
+      </button>
+
+      <input
+        type="text"
+        id="barcodeInput"
+        placeholder="Scan or Enter Barcode"
+        autocomplete="off">
+
+      <video id="video" width="100%" style="display:none;"></video>
+
+    </section>
+
+    <!-- Product Details -->
+    <section class="card details">
+
+      <h3>Barcode</h3>
+      <p id="barcodeValue">-----</p>
+
+      <h3>Color</h3>
+      <p id="colorValue">-----</p>
+
+      <h3>Size</h3>
+      <p id="sizeValue">-----</p>
+
+      <h3>Status</h3>
+      <p id="status">🟡 Ready</p>
+
+      <h3>Collected</h3>
+      <p id="counter">0 / 0</p>
+
+    </section>
+
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/@zxing/library@latest"></script>
+
+  <script src="js/excel.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+
+</html>
