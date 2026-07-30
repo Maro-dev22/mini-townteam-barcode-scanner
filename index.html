@@ -14,7 +14,9 @@
 
     <header>
       <img src="town.jpeg" alt="MINI TOWNTEAM Logo" class="logo">
-      <h1>Barcode Scanner</h1>
+      <h1>Barcode Picker</h1>
+
+<p class="version">Version 1.0</p>
     </header>
 
     <!-- Upload Excel -->
@@ -64,6 +66,18 @@
 
     </section>
 
+<div id="optionsBox" style="display:none; margin-top:20px;">
+
+    <h3>Choose Color</h3>
+    <div id="colorOptions"></div>
+
+    <h3 style="margin-top:20px;">Choose Size</h3>
+    <div id="sizeOptions"></div>
+    <button id="confirmBtn" style="display:none;">
+    ✅ Confirm Selection
+</button>
+
+</div>
   </div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>

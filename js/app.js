@@ -6,8 +6,18 @@ const counterText = document.getElementById("counter");
 const barcodeValue = document.getElementById("barcodeValue");
 const colorValue = document.getElementById("colorValue");
 const sizeValue = document.getElementById("sizeValue");
+const optionsBox = document.getElementById("optionsBox");
+const colorOptions = document.getElementById("colorOptions");
+const sizeOptions = document.getElementById("sizeOptions");
+const confirmBtn = document.getElementById("confirmBtn");
+
+let selectedCount = 0;
+let currentResults = [];
+let currentColor = "";
 
 let collected = 0;
+
+// هنستخدمها بعدين لما يبقى الاختيار بالكود + اللون + المقاس
 const scannedItems = new Set();
 
 // =========================
@@ -52,39 +62,62 @@ window.searchBarcode = function (barcode) {
 
     }
 
-    // Already Scanned
-    if (scannedItems.has(barcode)) {
+    // البحث برقم الموديل (مثال: 76658)
+    const results = window.excelData.filter(item => {
 
-        setStatus("🟠 Already Scanned", "already");
+        const modelCode = String(item.Barcode)
+            .match(/\d{5}/)?.[0];
 
-        barcodeValue.textContent = barcode;
-        colorValue.textContent = "-";
-        sizeValue.textContent = "-";
+        return modelCode === barcode;
 
-        barcodeInput.value = "";
-        barcodeInput.focus();
+    });
 
-        return;
+    if (results.length > 0) {
 
-    }
+        console.log(results);
 
-    // Search
-    const found = window.excelData.find(item =>
-        String(item.Barcode).trim() === barcode
-    );
+        // استخراج الألوان بدون تكرار
+        const colors = [...new Set(results.map(item => item.Color))];
 
-    if (found) {
+        // استخراج المقاسات بدون تكرار
+        const sizes = [...new Set(results.map(item => item.Size))];
 
-        scannedItems.add(barcode);
+      barcodeValue.textContent = barcode;
 
-        collected++;
+      colorValue.textContent = "-";
+      sizeValue.textContent = "-";
 
-        barcodeValue.textContent = found.Barcode;
-        colorValue.textContent = found.Color;
-        sizeValue.textContent = found.Size;
+       optionsBox.style.display = "block";
 
-        setStatus("🟢 Found", "found");
+       colorOptions.innerHTML = "";
+       sizeOptions.innerHTML = "";
+       colors.forEach(color => {
 
+    const btn = document.createElement("button");
+
+    btn.textContent = color;
+
+    btn.className = "color-btn";
+
+    btn.onclick = () => {
+
+        document.querySelectorAll(".color-btn").forEach(b => {
+            b.classList.remove("active");
+        });
+
+        btn.classList.add("active");
+
+        showSizes(results, color);
+
+    };
+
+    colorOptions.appendChild(btn);
+
+});
+
+        setStatus(`🟢 ${results.length} Item(s) Found`, "found");
+
+        // مؤقتاً مش هنزود العداد
         counterText.textContent =
             `${collected} / ${window.excelData.length}`;
 
@@ -102,3 +135,142 @@ window.searchBarcode = function (barcode) {
     barcodeInput.focus();
 
 };
+
+function showSizes(results, color) {
+selectedCount = 0;
+
+confirmBtn.disabled = true;
+
+confirmBtn.textContent = "✅ Confirm Selection";
+currentResults = results;
+currentColor = color;
+
+confirmBtn.style.display = "block";
+    sizeOptions.innerHTML = "";
+
+    const sizes = [...new Set(
+        results
+            .filter(item => item.Color === color)
+            .map(item => item.Size)
+    )];
+
+    sizes.forEach(size => {
+
+        const btn = document.createElement("button");
+
+        btn.textContent = size;
+
+        btn.className = "size-btn";
+
+     const key = `${barcodeValue.textContent}-${color}-${size}`;
+
+if (scannedItems.has(key)) {
+
+    btn.classList.add("collected");
+
+    btn.disabled = true;
+
+}
+
+        btn.dataset.selected = "false";
+
+      btn.onclick = () => {
+
+    if (btn.disabled) return;
+
+    if (btn.dataset.selected === "false") {
+
+        btn.dataset.selected = "true";
+
+        btn.classList.add("selected");
+
+        selectedCount++;
+
+    } else {
+
+        btn.dataset.selected = "false";
+
+        btn.classList.remove("selected");
+
+        selectedCount--;
+
+    }
+
+    if (selectedCount > 0) {
+
+        confirmBtn.disabled = false;
+
+        confirmBtn.textContent =
+            `✅ Confirm (${selectedCount})`;
+
+    } else {
+
+        confirmBtn.disabled = true;
+
+        confirmBtn.textContent =
+            "✅ Confirm Selection";
+
+    }
+
+};
+
+        sizeOptions.appendChild(btn);
+
+    });
+
+}
+
+confirmBtn.addEventListener("click", () => {
+
+    const selectedButtons = document.querySelectorAll(".size-btn.selected");
+
+    if(selectedButtons.length===0){
+
+        alert("Choose at least one size");
+
+        return;
+
+    }
+
+    selectedButtons.forEach(btn=>{
+
+        selectedCount = 0;
+
+confirmBtn.disabled = true;
+
+confirmBtn.textContent =
+"✅ Confirm Selection";
+
+barcodeInput.value = "";
+
+barcodeInput.focus();
+
+setStatus(
+`✅ ${selectedButtons.length} Piece(s) Collected`,
+"found"
+);
+
+setTimeout(()=>{
+
+    setStatus("🟡 Ready","");
+
+},2000);
+
+        const key = `${barcodeValue.textContent}-${currentColor}-${btn.textContent}`;
+
+        scannedItems.add(key);
+
+        btn.classList.remove("selected");
+
+        btn.classList.add("collected");
+
+        btn.disabled=true;
+
+        collected++;
+
+    });
+
+    counterText.textContent =
+    `${collected} / ${window.excelData.length}`;
+
+});
