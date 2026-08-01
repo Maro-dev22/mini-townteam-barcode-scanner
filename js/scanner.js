@@ -1,8 +1,7 @@
 const scanBtn = document.getElementById("scanBtn");
 const closeCameraBtn = document.getElementById("closeCameraBtn");
 
-const video = document.getElementById("video");
-const overlay = document.getElementById("cameraOverlay");
+ const video = document.getElementById("video");
 
 const codeReader = new ZXing.BrowserMultiFormatReader();
 
@@ -30,7 +29,7 @@ async function startCamera() {
 
     scanning = true;
 
-    overlay.style.display = "flex";
+    openCameraOverlay();
     video.style.display = "block";
 
     try {
@@ -105,7 +104,7 @@ function stopCamera() {
 
     codeReader.reset();
 
-    overlay.style.display = "none";
+    closeCameraOverlay();
 
     video.style.display = "none";
 

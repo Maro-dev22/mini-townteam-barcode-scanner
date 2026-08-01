@@ -1,0 +1,192 @@
+/* =========================
+   Camera Overlay
+========================= */
+
+.camera-overlay {
+
+    position: fixed;
+    inset: 0;
+
+    background: rgba(0,0,0,.88);
+
+    display: none;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 99999;
+
+    animation: fadeIn .25s ease;
+
+}
+
+@keyframes fadeIn {
+
+    from{
+        opacity:0;
+    }
+
+    to{
+        opacity:1;
+    }
+
+}
+
+.camera-container{
+
+    width:100%;
+    max-width:430px;
+
+    padding:20px;
+
+    text-align:center;
+
+    position:relative;
+
+}
+
+.camera-container h2{
+
+    color:#fff;
+
+    font-size:24px;
+
+    margin-bottom:20px;
+
+}
+
+#video{
+
+    width:100%;
+
+    border-radius:22px;
+
+    object-fit:cover;
+
+    overflow:hidden;
+
+    border:2px solid rgba(255,255,255,.08);
+
+    box-shadow:0 15px 40px rgba(0,0,0,.35);
+
+}
+
+.camera-text{
+
+    color:#ddd;
+
+    margin-top:18px;
+
+    font-size:15px;
+
+}
+
+#closeCameraBtn{
+
+    width:100%;
+
+    margin-top:22px;
+
+    padding:14px;
+
+    border:none;
+
+    border-radius:14px;
+
+    background:#d83b3b;
+
+    color:#fff;
+
+    font-size:17px;
+
+    cursor:pointer;
+
+}
+
+#closeCameraBtn:hover{
+
+    background:#bf2b2b;
+
+}
+
+
+/* =========================
+      Scan Frame
+========================= */
+
+.scan-frame{
+
+    position:absolute;
+
+    left:50%;
+
+    top:48%;
+
+    transform:translate(-50%,-50%);
+
+    width:240px;
+
+    height:130px;
+
+    pointer-events:none;
+
+}
+
+/* الزوايا */
+
+.scan-frame::before,
+.scan-frame::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:45px;
+
+    height:45px;
+
+    border:5px solid #00d26a;
+
+}
+
+/* أعلى شمال */
+
+.scan-frame::before{
+
+    left:0;
+    top:0;
+
+    border-right:none;
+    border-bottom:none;
+
+    border-radius:12px 0 0 0;
+
+}
+
+/* أسفل يمين */
+
+.scan-frame::after{
+
+    right:0;
+    bottom:0;
+
+    border-left:none;
+    border-top:none;
+
+    border-radius:0 0 12px 0;
+
+}
+
+/* الزاويتين الباقيين */
+
+.scan-frame{
+
+    border-left:5px solid transparent;
+    border-right:5px solid transparent;
+
+}
+
+.scan-frame span{
+
+    display:none;
+
+}

@@ -1,0 +1,33 @@
+@media(max-width:600px){
+
+    .logo{
+
+        width:150px;
+
+    }
+
+    header h1{
+
+        font-size:22px;
+
+    }
+
+    .card{
+
+        padding:15px;
+
+    }
+
+    .details p{
+
+        font-size:20px;
+
+    }
+
+    button{
+
+        font-size:18px;
+
+    }
+
+}
