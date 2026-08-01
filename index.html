@@ -42,7 +42,7 @@
         placeholder="Scan or Enter Barcode"
         autocomplete="off">
 
-      <video id="video" width="100%" style="display:none;"></video>
+      
 
     </section>
 
@@ -79,7 +79,33 @@
 
 </div>
   </div>
+<!-- Camera Overlay -->
+<div id="cameraOverlay" class="camera-overlay">
 
+  <div class="camera-container">
+
+    <h2>📷 Scan Barcode</h2>
+
+   <video
+    id="video"
+    autoplay
+    playsinline
+    style="display:none;">
+</video>
+
+    <div class="scan-frame"></div>
+
+    <p class="camera-text">
+      Place barcode inside the frame
+    </p>
+
+    <button id="closeCameraBtn">
+      ✖ Close
+    </button>
+
+  </div>
+
+</div>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/@zxing/library@latest"></script>
 

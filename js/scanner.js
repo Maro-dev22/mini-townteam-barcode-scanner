@@ -1,11 +1,28 @@
 const scanBtn = document.getElementById("scanBtn");
+const closeCameraBtn = document.getElementById("closeCameraBtn");
+
 const video = document.getElementById("video");
+const overlay = document.getElementById("cameraOverlay");
 
 const codeReader = new ZXing.BrowserMultiFormatReader();
 
 let scanning = false;
 
+// =========================
+// Open Camera
+// =========================
+
 scanBtn.addEventListener("click", startCamera);
+
+// =========================
+// Close Camera
+// =========================
+
+closeCameraBtn.addEventListener("click", stopCamera);
+
+// =========================
+// Start Camera
+// =========================
 
 async function startCamera() {
 
@@ -13,7 +30,7 @@ async function startCamera() {
 
     scanning = true;
 
-   
+    overlay.style.display = "flex";
     video.style.display = "block";
 
     try {
@@ -24,7 +41,7 @@ async function startCamera() {
 
             alert("No camera found");
 
-            scanning = false;
+            stopCamera();
 
             return;
 
@@ -43,8 +60,11 @@ async function startCamera() {
             : devices[0].deviceId;
 
         codeReader.decodeFromVideoDevice(
+
             cameraId,
+
             video,
+
             (result, error) => {
 
                 if (result) {
@@ -57,28 +77,35 @@ async function startCamera() {
 
                 }
 
-                if (error) {
-                    return;
-                }
+                if (error) return;
 
             }
+
         );
 
-    } catch (err) {
+    }
+
+    catch (err) {
 
         console.error(err);
 
         alert("Unable to access camera.");
 
-        scanning = false;
+        stopCamera();
 
     }
 
 }
 
+// =========================
+// Stop Camera
+// =========================
+
 function stopCamera() {
 
     codeReader.reset();
+
+    overlay.style.display = "none";
 
     video.style.display = "none";
 
