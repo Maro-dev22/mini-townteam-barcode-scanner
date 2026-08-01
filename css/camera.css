@@ -4,22 +4,25 @@
 
 .camera-overlay {
 
-    position: fixed;
-    inset: 0;
+position: fixed;
+ inset: 0;
 
-    background: rgba(0,0,0,.88);
+ background: rgba(0,0,0,.88);
+ 
+ display: flex;
 
-    display: none;
-    justify-content: center;
-    align-items: center;
+ justify-content: center;
+ align-items: center;
 
-    z-index: 99999;
+ opacity: 0;
+ visibility: hidden;
 
-    animation: fadeIn .25s ease;
+ transition: opacity .3s ease, visibility .3s ease;
 
-}
+  z-index: 99999;
 
-@keyframes fadeIn {
+ }
+ @keyframes fadeIn {
 
     from{
         opacity:0;
@@ -56,7 +59,7 @@
 
 #video{
 
-    width:100%;
+      width:100%;
 
     border-radius:22px;
 
@@ -68,9 +71,12 @@
 
     box-shadow:0 15px 40px rgba(0,0,0,.35);
 
-}
+    transform:scale(.92);
 
-.camera-text{
+    transition:transform .3s ease;
+
+}
+ .camera-text{
 
     color:#ddd;
 
@@ -188,5 +194,19 @@
 .scan-frame span{
 
     display:none;
+
+}
+
+.camera-overlay.show{
+
+    opacity:1;
+
+    visibility:visible;
+
+}
+
+.camera-overlay.show #video{
+
+    transform:scale(1);
 
 }

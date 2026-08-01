@@ -6,7 +6,7 @@ const overlay = document.getElementById("cameraOverlay");
 
 function openCameraOverlay() {
 
-    overlay.style.display = "flex";
+ overlay.classList.add("show");
 
 }
 
@@ -16,6 +16,6 @@ function openCameraOverlay() {
 
 function closeCameraOverlay() {
 
-    overlay.style.display = "none";
+ overlay.classList.remove("show");
 
 }

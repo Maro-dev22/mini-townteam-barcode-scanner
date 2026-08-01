@@ -34,36 +34,11 @@ async function startCamera() {
 
     try {
 
-        const devices = await codeReader.listVideoInputDevices();
-
-        if (devices.length === 0) {
-
-            alert("No camera found");
-
-            stopCamera();
-
-            return;
-
-        }
-
-        const backCamera = devices.find(device => {
-
-            const name = device.label.toLowerCase();
-
-            return name.includes("back") || name.includes("rear");
-
-        });
-
-        const cameraId = backCamera
-            ? backCamera.deviceId
-            : devices[0].deviceId;
+        const cameraId = await getBackCamera();
 
         codeReader.decodeFromVideoDevice(
-
             cameraId,
-
             video,
-
             (result, error) => {
 
                 if (result) {
@@ -79,12 +54,9 @@ async function startCamera() {
                 if (error) return;
 
             }
-
         );
 
-    }
-
-    catch (err) {
+    } catch (err) {
 
         console.error(err);
 
@@ -95,6 +67,7 @@ async function startCamera() {
     }
 
 }
+
 
 // =========================
 // Stop Camera
@@ -109,5 +82,32 @@ function stopCamera() {
     video.style.display = "none";
 
     scanning = false;
+
+}
+// =========================
+// GetBackCamera
+// =========================
+
+async function getBackCamera() {
+
+    const devices = await codeReader.listVideoInputDevices();
+
+    if (devices.length === 0) {
+
+        throw new Error("No camera found");
+
+    }
+
+    const backCamera = devices.find(device => {
+
+        const name = device.label.toLowerCase();
+
+        return name.includes("back") || name.includes("rear");
+
+    });
+
+    return backCamera
+        ? backCamera.deviceId
+        : devices[0].deviceId;
 
 }
