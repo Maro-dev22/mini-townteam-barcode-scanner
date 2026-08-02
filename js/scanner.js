@@ -1,32 +1,18 @@
 const scanBtn = document.getElementById("scanBtn");
 const closeCameraBtn = document.getElementById("closeCameraBtn");
 
- const video = document.getElementById("video");
-const hints = new Map();
-
-hints.set(
-    ZXing.DecodeHintType.POSSIBLE_FORMATS,
-    [
-        ZXing.BarcodeFormat.CODE_128
-    ]
-);
-
-const codeReader = new ZXing.BrowserMultiFormatReader(hints);
+const html5QrCode = new Html5Qrcode("reader");
 
 let scanning = false;
+
 let lastBarcode = "";
 let lastScanTime = 0;
 
 // =========================
-// Open Camera
+// Events
 // =========================
 
-scanBtn.addEventListener("click", startCamera);
-
-// =========================
-// Close Camera
-// =========================
-
+ scanBtn.addEventListener("click", startCamera);
 closeCameraBtn.addEventListener("click", stopCamera);
 
 // =========================
@@ -37,99 +23,102 @@ async function startCamera() {
 
     if (scanning) return;
 
-    scanning = true;
-
-    openCameraOverlay();
-    video.style.display = "block";
+    scanning = true;    openCameraOverlay();
 
     try {
 
-        const cameraId = await getBackCamera();
+        await html5QrCode.start(
 
-        codeReader.decodeFromVideoDevice(
-            cameraId,
-            video,
-            (result, error) => {
+            {
+                facingMode: "environment"
+            },
 
-              if (result) {
+            {
+                fps: 15,
+                qrbox: {
+                    width: 260,
+                    height: 120
+                },
+                aspectRatio: 1.777
+            },
 
-    const barcode = result.getText();
+            onScanSuccess,
 
-    const now = Date.now();
+            onScanFailure
 
-    if (
-        barcode === lastBarcode &&
-        now - lastScanTime < 1500
-    ) {
-        return;
-    }
-
-    lastBarcode = barcode;
-    lastScanTime = now;
-
-    window.searchBarcode(barcode);
-
-    stopCamera();
-
-}
-
-                if (error) return;
-
-            }
         );
 
-    } catch (err) {
+    }
+
+    catch (err) {
 
         console.error(err);
 
-        alert("Unable to access camera.");
+        alert("Unable to access camera");
 
         stopCamera();
 
     }
 
+} 
+
+// =========================
+// Success
+// =========================
+
+async function onScanSuccess(decodedText) {
+
+    const now = Date.now();
+
+    if (
+        decodedText === lastBarcode &&
+        now - lastScanTime < 1500
+    ) {
+        return;
+    }
+
+    lastBarcode = decodedText;
+    lastScanTime = now;
+
+    await stopCamera();
+
+    window.searchBarcode(decodedText);
+
 }
 
+// =========================
+// Ignore Errors
+// =========================
 
+function onScanFailure(error) {
+
+    // Ignore
+
+}
 // =========================
 // Stop Camera
 // =========================
 
-function stopCamera() {
+async function stopCamera() {
 
-    codeReader.reset();
-
-    closeCameraOverlay();
-
-    video.style.display = "none";
+    if (!scanning) return;
 
     scanning = false;
 
-}
-// =========================
-// GetBackCamera
-// =========================
+    try {
 
-async function getBackCamera() {
+        await html5QrCode.stop();
 
-    const devices = await codeReader.listVideoInputDevices();
-
-    if (devices.length === 0) {
-
-        throw new Error("No camera found");
+        await html5QrCode.clear();
 
     }
 
-    const backCamera = devices.find(device => {
+    catch (err) {
 
-        const name = device.label.toLowerCase();
+        console.log(err);
 
-        return name.includes("back") || name.includes("rear");
+    }
 
-    });
-
-    return backCamera
-        ? backCamera.deviceId
-        : devices[0].deviceId;
+    closeCameraOverlay();
 
 }
