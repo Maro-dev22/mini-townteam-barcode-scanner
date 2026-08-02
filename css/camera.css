@@ -4,139 +4,235 @@
 
 .camera-overlay {
 
-position: fixed;
- inset: 0;
+    position: fixed;
+    inset: 0;
 
- background: rgba(0,0,0,.88);
- 
- display: flex;
+    background: rgba(0,0,0,.88);
 
- justify-content: center;
- align-items: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
- opacity: 0;
- visibility: hidden;
+    opacity: 0;
+    visibility: hidden;
 
- transition: opacity .3s ease, visibility .3s ease;
+    transition: opacity .3s ease, visibility .3s ease;
 
-  z-index: 99999;
+    z-index: 99999;
 
- }
- @keyframes fadeIn {
+}
 
-    from{
-        opacity:0;
+.camera-overlay.show {
+
+    opacity: 1;
+    visibility: visible;
+
+}
+
+@keyframes fadeIn {
+
+    from {
+        opacity: 0;
     }
 
-    to{
-        opacity:1;
+    to {
+        opacity: 1;
     }
 
 }
 
-.camera-container{
-
-    width:100%;
-    max-width:430px;
-
-    padding:20px;
-
-    text-align:center;
-
-    position:relative;
-
-}
-
-.camera-container h2{
-
-    color:#fff;
-
-    font-size:24px;
-
-    margin-bottom:20px;
-
-}
-
-#video{
-
-      width:100%;
-
-    border-radius:22px;
-
-    object-fit:cover;
-
-    overflow:hidden;
-
-    border:2px solid rgba(255,255,255,.08);
-
-    box-shadow:0 15px 40px rgba(0,0,0,.35);
-
-    transform:scale(.92);
-
-    transition:transform .3s ease;
-
-}
- .camera-text{
-
-    color:#ddd;
-
-    margin-top:18px;
-
-    font-size:15px;
-
-}
-
-#closeCameraBtn{
-
-    width:100%;
-
-    margin-top:22px;
-
-    padding:14px;
-
-    border:none;
-
-    border-radius:14px;
-
-    background:#d83b3b;
-
-    color:#fff;
-
-    font-size:17px;
-
-    cursor:pointer;
-
-}
-
-#closeCameraBtn:hover{
-
-    background:#bf2b2b;
-
-}
-
-
 /* =========================
-      Scan Frame
+   Camera Container
 ========================= */
 
-.scan-frame{
+.camera-container {
+
+    width: 100%;
+    max-width: 430px;
+
+    padding: 20px;
+
+    text-align: center;
+
+    position: relative;
+
+}
+
+.camera-container h2 {
+
+    color: #fff;
+
+    font-size: 24px;
+
+    margin-bottom: 20px;
+
+}
+
 /* =========================
-      Laser Animation
+   Camera Video
 ========================= */
 
-.scan-line{
+#video {
 
-    position:absolute;
+    width: 100%;
 
-    left:0;
+    border-radius: 22px;
 
-    top:0;
+    object-fit: cover;
 
-    width:100%;
+    overflow: hidden;
 
-    height:4px;
+    border: 2px solid rgba(255,255,255,.08);
 
-    background:#00ff88;
+    box-shadow: 0 15px 40px rgba(0,0,0,.35);
+
+    transform: scale(.92);
+
+    transition: transform .3s ease;
+
+}
+
+.camera-overlay.show #video {
+
+    transform: scale(1);
+
+}
+
+/* =========================
+   Camera Text
+========================= */
+
+.camera-text {
+
+    color: #ddd;
+
+    margin-top: 18px;
+
+    font-size: 15px;
+
+}
+
+/* =========================
+   Close Button
+========================= */
+
+#closeCameraBtn {
+
+    width: 100%;
+
+    margin-top: 22px;
+
+    padding: 14px;
+
+    border: none;
+
+    border-radius: 14px;
+
+    background: #d83b3b;
+
+    color: #fff;
+
+    font-size: 17px;
+
+    cursor: pointer;
+
+}
+
+#closeCameraBtn:hover {
+
+    background: #bf2b2b;
+
+}
+
+/* =========================
+   Scan Frame
+========================= */
+
+.scan-frame {
+
+    position: absolute;
+
+    left: 50%;
+
+    top: 48%;
+
+    transform: translate(-50%, -50%);
+
+    width: 240px;
+
+    height: 130px;
+
+    pointer-events: none;
+
+    overflow: hidden;
+
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+
+}
+
+/* =========================
+   Frame Corners
+========================= */
+
+.scan-frame::before,
+.scan-frame::after {
+
+    content: "";
+
+    position: absolute;
+
+    width: 45px;
+
+    height: 45px;
+
+    border: 5px solid #00d26a;
+
+}
+
+/* Top Left */
+
+.scan-frame::before {
+
+    left: 0;
+    top: 0;
+
+    border-right: none;
+    border-bottom: none;
+
+    border-radius: 12px 0 0 0;
+
+}
+
+/* Bottom Right */
+
+.scan-frame::after {
+
+    right: 0;
+    bottom: 0;
+
+    border-left: none;
+    border-top: none;
+
+    border-radius: 0 0 12px 0;
+
+}
+
+/* =========================
+   Laser Animation
+========================= */
+
+.scan-line {
+
+    position: absolute;
+
+    left: 7.5%;
+
+    width: 85%;
+
+    height: 4px;
+
+    background: #00ff88;
 
     box-shadow:
         0 0 10px #00ff88,
@@ -146,122 +242,30 @@ position: fixed;
 
 }
 
+@keyframes scanMove {
 
-@keyframes scanMove{
+    0% {
 
-    0%{
+        top: 0;
 
-        top:0;
-
-        opacity:.5;
-
-    }
-
-
-    50%{
-
-        top:100%;
-
-        opacity:1;
+        opacity: .5;
 
     }
 
+    50% {
 
-    100%{
+        top: calc(100% - 4px);
 
-        top:0;
-
-        opacity:.5;
+        opacity: 1;
 
     }
 
-}
-    position:absolute;
+    100% {
 
-    left:50%;
+        top: 0;
 
-    top:48%;
+        opacity: .5;
 
-    transform:translate(-50%,-50%);
-
-    width:240px;
-
-    height:130px;
-
-    pointer-events:none;
-
-}
-
-/* الزوايا */
-
-.scan-frame::before,
-.scan-frame::after{
-
-    content:"";
-
-    position:absolute;
-
-    width:45px;
-
-    height:45px;
-
-    border:5px solid #00d26a;
-
-}
-
-/* أعلى شمال */
-
-.scan-frame::before{
-
-    left:0;
-    top:0;
-
-    border-right:none;
-    border-bottom:none;
-
-    border-radius:12px 0 0 0;
-
-}
-
-/* أسفل يمين */
-
-.scan-frame::after{
-
-    right:0;
-    bottom:0;
-
-    border-left:none;
-    border-top:none;
-
-    border-radius:0 0 12px 0;
-
-}
-
-/* الزاويتين الباقيين */
-
-.scan-frame{
-
-    border-left:5px solid transparent;
-    border-right:5px solid transparent;
-
-}
-
-.scan-frame span{
-
-    display:none;
-
-}
-
-.camera-overlay.show{
-
-    opacity:1;
-
-    visibility:visible;
-
-}
-
-.camera-overlay.show #video{
-
-    transform:scale(1);
+    }
 
 }
