@@ -2,10 +2,20 @@ const scanBtn = document.getElementById("scanBtn");
 const closeCameraBtn = document.getElementById("closeCameraBtn");
 
  const video = document.getElementById("video");
+const hints = new Map();
 
-const codeReader = new ZXing.BrowserMultiFormatReader();
+hints.set(
+    ZXing.DecodeHintType.POSSIBLE_FORMATS,
+    [
+        ZXing.BarcodeFormat.CODE_128
+    ]
+);
+
+const codeReader = new ZXing.BrowserMultiFormatReader(hints);
 
 let scanning = false;
+let lastBarcode = "";
+let lastScanTime = 0;
 
 // =========================
 // Open Camera
@@ -41,15 +51,27 @@ async function startCamera() {
             video,
             (result, error) => {
 
-                if (result) {
+              if (result) {
 
-                    const barcode = result.getText();
+    const barcode = result.getText();
 
-                    window.searchBarcode(barcode);
+    const now = Date.now();
 
-                    stopCamera();
+    if (
+        barcode === lastBarcode &&
+        now - lastScanTime < 1500
+    ) {
+        return;
+    }
 
-                }
+    lastBarcode = barcode;
+    lastScanTime = now;
+
+    window.searchBarcode(barcode);
+
+    stopCamera();
+
+}
 
                 if (error) return;
 
