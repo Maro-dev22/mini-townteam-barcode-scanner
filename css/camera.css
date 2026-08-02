@@ -269,3 +269,13 @@
     }
 
 }
+#reader{
+    width:100%;
+    overflow:hidden;
+    border-radius:22px;
+}
+
+#reader video{
+    border-radius:22px;
+    object-fit:cover;
+}
