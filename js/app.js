@@ -183,6 +183,8 @@ confirmBtn.textContent = "✅ Confirm Selection";
 currentResults = results;
 currentColor = color;
 
+colorValue.textContent = color;
+
 confirmBtn.style.display = "block";
     sizeOptions.innerHTML = "";
 
