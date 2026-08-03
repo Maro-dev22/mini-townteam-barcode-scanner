@@ -1,82 +1,54 @@
+// =========================
 // عناصر الصفحة
-const excelFile = document.getElementById("excelFile");
+// =========================
+
 const missionFile = document.getElementById("missionFile");
 
-// Database الأساسية
+// =========================
+// Databases
+// =========================
+
 window.barcodeMap = new Map();
 window.missionMap = new Map();
 window.excelData = [];
 
-// أول ما المستخدم يختار ملف
-excelFile.addEventListener("change", readExcel);
-missionFile.addEventListener("change", readMissionFile);
+// =========================
+// تحميل قاعدة البيانات الأساسية تلقائياً
+// =========================
 
-function readExcel(event) {
+fetch("data/master.json")
+    .then(res => res.json())
+    .then(data => {
 
-    const file = event.target.files[0];
+        data.forEach(item => {
 
-    if (!file) return;
+            const barcode = String(item["Barcode"]).trim();
 
-    const reader = new FileReader();
+            window.barcodeMap.set(barcode, {
 
-    reader.onload = function (e) {
+                itemCode: String(item["Item Code"]).trim(),
+                color: String(item["Color"]).trim(),
+                size: String(item["Size"]).trim()
 
-        const data = new Uint8Array(e.target.result);
+            });
 
-        const workbook = XLSX.read(data, { type: "array" });
+        });
 
-        const sheetName = workbook.SheetNames[0];
+        console.log(`✅ Master Database Loaded: ${window.barcodeMap.size} items`);
 
-        const sheet = workbook.Sheets[sheetName];
+    })
+    .catch(err => {
 
-       const rows = XLSX.utils.sheet_to_json(sheet);
-
-       const firstRow = rows[0];
-if (
-    !firstRow ||
-    !firstRow.hasOwnProperty("Barcode") ||
-    !firstRow.hasOwnProperty("Item Code") ||
-    !firstRow.hasOwnProperty("Color") ||
-    !firstRow.hasOwnProperty("Size")
-) {
-
-    alert("❌ Invalid Excel file.\nPlease use the official MINI TOWNTEAM template.");
-
-window.barcodeMap.clear();
-
-excelFile.value = "";
-
-    return;
-}
-// بناء الـ Barcode Map
-
-window.barcodeMap.clear();
-
-rows.forEach(row => {
-
-    const barcode = String(row["Barcode"]).trim();
-
-    window.barcodeMap.set(barcode, {
-
-        itemCode: String(row["Item Code"]).trim(),
-
-        color: String(row["Color"]).trim(),
-
-        size: String(row["Size"]).trim()
+        console.error("❌ Failed to load master.json", err);
 
     });
 
-});
-       console.log(window.barcodeMap);
-       console.log("Products:", window.barcodeMap.size);  
+// =========================
+// الملف اليومي
+// =========================
 
-        alert("Excel Loaded Successfully ✅");
+missionFile.addEventListener("change", readMissionFile);
 
-    };
-
-    reader.readAsArrayBuffer(file);
-
-}
 function readMissionFile(event) {
 
     const file = event.target.files[0];
@@ -96,6 +68,7 @@ function readMissionFile(event) {
         const rows = XLSX.utils.sheet_to_json(sheet);
 
         const firstRow = rows[0];
+
         if (
             !firstRow ||
             !firstRow.hasOwnProperty("Item Code") ||
@@ -111,6 +84,7 @@ function readMissionFile(event) {
             missionFile.value = "";
 
             return;
+
         }
 
         window.missionMap.clear();
@@ -132,21 +106,15 @@ function readMissionFile(event) {
             window.missionMap.get(itemCode).push({
 
                 color,
-
                 size
 
             });
 
         });
 
-        console.log(window.missionMap);
-
         window.excelData = rows;
 
-        console.log(
-            "Mission Products:",
-            window.missionMap.size
-        );
+        console.log("Mission Products:", window.missionMap.size);
 
         alert("Mission Loaded Successfully ✅");
 
