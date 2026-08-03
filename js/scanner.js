@@ -27,27 +27,30 @@ async function startCamera() {
 
     try {
 
-        await html5QrCode.start(
+      await html5QrCode.start(
 
-            {
-                facingMode: "environment"
-            },
+    {
+        facingMode: "environment"
+    },
 
-            {
-                fps: 15,
-                qrbox: {
-                    width: 260,
-                    height: 120
-                },
-                aspectRatio: 1.777
-            },
+    {
+        fps: 20,
 
-            onScanSuccess,
+        qrbox: {
+            width: 280,
+            height: 120
+        },
 
-            onScanFailure
+        formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128
+        ]
+    },
 
-        );
+    onScanSuccess,
 
+    onScanFailure
+
+);
     }
 
     catch (err) {
