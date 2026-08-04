@@ -81,6 +81,7 @@ window.searchBarcode = function (barcode) {
         optionsBox.style.display = "none";
 
         setStatus("🔴 BARCODE NOT FOUND", "not-found");
+        window.onScanError?.();
 
         barcodeInput.value = "";
         barcodeInput.focus();
@@ -102,6 +103,7 @@ window.searchBarcode = function (barcode) {
         optionsBox.style.display = "none";
 
         setStatus("🔴 NOT FOUND", "not-found");
+        window.onScanError?.();
 
         barcodeInput.value = "";
         barcodeInput.focus();
@@ -167,6 +169,7 @@ window.searchBarcode = function (barcode) {
     }
 
     setStatus("🟢 FOUND", "found");
+    window.onScanSuccess?.();
 
     barcodeInput.value = "";
 
