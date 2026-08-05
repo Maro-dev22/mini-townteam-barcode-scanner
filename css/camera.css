@@ -47,10 +47,10 @@
 
 .camera-container {
 
-    width: 100%;
-    max-width: 430px;
+    width: 92vw;
+    max-width: 600px;
 
-    padding: 20px;
+    padding: 0;
 
     text-align: center;
 
@@ -275,11 +275,14 @@
 
 #reader {
     width: 100%;
-    min-height: 240px;
+    height: 60vh;
+    min-height: 350px;
+    max-height: 800px;
     overflow: hidden;
     border-radius: 22px;
     position: relative;
     background: #000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 #reader video {

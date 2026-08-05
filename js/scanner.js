@@ -120,7 +120,7 @@ const AudioFeedback = (() => {
         return ctx;
     }
 
-    function beep(freq, duration, type = "square", volume = 0.35) {
+    function beep(freq, duration, type = "sine", volume = 0.35) {
         try {
             const ac   = getCtx();
             const osc  = ac.createOscillator();
@@ -129,27 +129,30 @@ const AudioFeedback = (() => {
             gain.connect(ac.destination);
             osc.type = type;
             osc.frequency.setValueAtTime(freq, ac.currentTime);
-            gain.gain.setValueAtTime(volume, ac.currentTime);
+            
+            // Soft envelope: fade in over 10ms, fade out over the rest
+            gain.gain.setValueAtTime(0, ac.currentTime);
+            gain.gain.linearRampToValueAtTime(volume, ac.currentTime + 0.01);
             gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+            
             osc.start(ac.currentTime);
             osc.stop(ac.currentTime + duration);
         } catch (_) { /* audio blocked or unavailable */ }
     }
 
     return {
-        // Short POS-style double-chirp
+        // Soft professional POS scanner beep
         success() {
-            beep(1200, 0.06, "square", 0.35);
-            setTimeout(() => beep(1600, 0.09, "square", 0.30), 70);
+            beep(880, 0.08, "triangle", 0.4);
         },
-        // Descending error tone
+        // Lower double-beep, not loud
         error() {
-            beep(600, 0.08, "sawtooth", 0.30);
-            setTimeout(() => beep(400, 0.12, "sawtooth", 0.25), 90);
+            beep(350, 0.1, "triangle", 0.3);
+            setTimeout(() => beep(350, 0.1, "triangle", 0.3), 150);
         },
         // Single soft chime on camera open
         startup() {
-            beep(900, 0.07, "sine", 0.20);
+            beep(600, 0.07, "sine", 0.20);
         },
     };
 })();
@@ -359,6 +362,11 @@ window.onScanSuccess = function () {
     AudioFeedback.success();
     HapticFeedback.success();
     VisualFeedback.success();
+    
+    // Close the scanner window automatically after the flash
+    setTimeout(() => {
+        closeCameraOverlay();
+    }, 400); // 400ms allows the 350ms flash animation to finish
 };
 
 window.onScanError = function () {
@@ -367,14 +375,10 @@ window.onScanError = function () {
     VisualFeedback.error();
     BarcodeCanvas.clear();
 
-    // Resume scanning after a short delay so user can see the error status
+    // Close the scanner window automatically after the flash
     setTimeout(() => {
-        if (State.activeEngine) {
-            StatusBadge.ready();
-            DuplicateGuard.reset();
-            State.activeEngine.resume();
-        }
-    }, 800);
+        closeCameraOverlay();
+    }, 600); // 600ms allows the 500ms flash animation to finish
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
