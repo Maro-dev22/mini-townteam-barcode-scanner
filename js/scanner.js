@@ -424,13 +424,13 @@ const DynamsoftEngine = (() => {
 
     // ── ROI: only center 80%×40% of frame is decoded ───────────────────────
     async function applyROI() {
-        try {
-            await cameraEnhancer.setScanRegion(CONFIG.SCAN_REGION);
-            cameraView?.setScanLaserVisible?.(false);
-            cameraView?.setScanRegionMaskVisible?.(false);
-        } catch (_) { /* older SDK version */ }
-    }
+    try {
+        // await cameraEnhancer.setScanRegion(CONFIG.SCAN_REGION);
 
+        cameraView?.setScanLaserVisible?.(false);
+        cameraView?.setScanRegionMaskVisible?.(false);
+    } catch (_) {}
+}
     // ── Select back-facing camera ───────────────────────────────────────────
     async function selectBackCamera() {
         try {
