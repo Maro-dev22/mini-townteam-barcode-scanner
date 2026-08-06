@@ -18,7 +18,7 @@
       <img src="town.jpeg" alt="MINI TOWNTEAM Logo" class="logo">
       <h1>Barcode Picker</h1>
 
-<p class="version">Version 2.1</p>
+<p class="version">Version 2.2</p>
     </header>
 <section class="card">
 
@@ -47,6 +47,25 @@
 
     </section>
 
+    <!-- Dashboard & Progress -->
+    <section class="card dashboard">
+      <h2>Dashboard & Progress</h2>
+      
+      <div class="progress-wrapper">
+        <div class="progress-bar-bg">
+          <div id="progressBar" class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="remainingCounter">Remaining: 0</span>
+          <span id="totalCounter">Total: 0</span>
+        </div>
+      </div>
+
+      <div class="last-scanned">
+        <h3>Last Scanned</h3>
+        <p id="lastScannedItem">-----</p>
+      </div>
+    </section>
     <!-- Product Details -->
     <section class="card details">
 
@@ -79,6 +98,12 @@
 </button>
 
 </div>
+
+    <section class="card" style="margin-top: 20px;">
+        <button id="exportBtn" style="background-color: #007bff; color: white;">
+            📥 Export File 
+        </button>
+    </section>
   </div>
 <!-- Camera Overlay -->
 <div id="cameraOverlay" class="camera-overlay">

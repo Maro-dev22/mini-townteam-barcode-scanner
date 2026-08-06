@@ -11,6 +11,9 @@ const missionFile = document.getElementById("missionFile");
 window.barcodeMap = new Map();
 window.missionMap = new Map();
 window.excelData = [];
+window.missionFileName = "";
+window.missionSheetName = "Sheet1";
+window.missionHeaders = [];
 
 // =========================
 // تحميل قاعدة البيانات الأساسية تلقائياً
@@ -54,6 +57,8 @@ function readMissionFile(event) {
     const file = event.target.files[0];
 
     if (!file) return;
+    
+    window.missionFileName = file.name;
 
     const reader = new FileReader();
 
@@ -62,10 +67,17 @@ function readMissionFile(event) {
         const data = new Uint8Array(e.target.result);
 
         const workbook = XLSX.read(data, { type: "array" });
+        
+        window.missionSheetName = workbook.SheetNames[0];
 
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const sheet = workbook.Sheets[window.missionSheetName];
 
         const rows = XLSX.utils.sheet_to_json(sheet);
+        
+        const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        if (rawRows.length > 0) {
+            window.missionHeaders = rawRows[0];
+        }
 
         const firstRow = rows[0];
 

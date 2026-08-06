@@ -21,6 +21,33 @@ let collected = 0;
 const scannedItems = new Set();
 
 // =========================
+// Dashboard & Progress UI
+// =========================
+window.updateDashboard = function() {
+    const total = window.excelData ? window.excelData.length : 0;
+    const remaining = Math.max(0, total - collected);
+    
+    const progressBar = document.getElementById("progressBar");
+    const remainingCounter = document.getElementById("remainingCounter");
+    const totalCounter = document.getElementById("totalCounter");
+    
+    if (remainingCounter) remainingCounter.textContent = `Remaining: ${remaining}`;
+    if (totalCounter) totalCounter.textContent = `Total: ${total}`;
+    
+    if (progressBar) {
+        const percent = total > 0 ? (collected / total) * 100 : 0;
+        progressBar.style.width = `${percent}%`;
+    }
+};
+
+window.updateLastScanned = function(text) {
+    const lastScanned = document.getElementById("lastScannedItem");
+    if (lastScanned) {
+        lastScanned.textContent = text;
+    }
+};
+
+// =========================
 // Status Function
 // =========================
 function setStatus(message, className) {
@@ -310,6 +337,8 @@ setTimeout(()=>{
         btn.disabled=true;
 
         collected++;
+        window.updateDashboard();
+        window.updateLastScanned(key);
 
     });
 
@@ -317,3 +346,81 @@ setTimeout(()=>{
     `${collected} / ${window.excelData.length}`;
 
 });
+
+// =========================
+// Export Mission
+// =========================
+const exportBtn = document.getElementById("exportBtn");
+
+if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+        if (!window.excelData || window.excelData.length === 0) {
+            alert("No mission loaded.");
+            return;
+        }
+
+        const originalBtnText = exportBtn.innerHTML;
+        exportBtn.innerHTML = "⏳ Exporting Mission...";
+        exportBtn.disabled = true;
+
+        setTimeout(() => {
+            try {
+                const remainingData = [];
+
+                for (let i = 0; i < window.excelData.length; i++) {
+                    const row = window.excelData[i];
+                    const itemCode = String(row["Item Code"] || "").trim();
+                    const color = String(row["Color"] || "").trim();
+                    const size = String(row["Size"] || "").trim();
+                    
+                    const key = `${itemCode}-${color}-${size}`;
+
+                    if (!scannedItems.has(key)) {
+                        remainingData.push(row);
+                    }
+                }
+
+                if (remainingData.length === 0) {
+                    alert("Mission Completed.\nNothing to export.");
+                    exportBtn.innerHTML = originalBtnText;
+                    exportBtn.disabled = false;
+                    return;
+                }
+
+                // Create a new worksheet keeping original headers
+                const ws = XLSX.utils.json_to_sheet(remainingData, { header: window.missionHeaders });
+
+                // Create a new workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, window.missionSheetName || "Sheet1");
+
+                // Generate filename
+                let exportName = "Mission_Remaining.xlsx";
+                if (window.missionFileName) {
+                    const nameParts = window.missionFileName.split('.');
+                    if (nameParts.length > 1) {
+                        const ext = nameParts.pop();
+                        exportName = nameParts.join('.') + "_Remaining." + ext;
+                    } else {
+                        exportName = window.missionFileName + "_Remaining.xlsx";
+                    }
+                }
+
+                // Download the file
+                XLSX.writeFile(wb, exportName);
+
+                exportBtn.innerHTML = "✅ Mission exported successfully.";
+                setTimeout(() => {
+                    exportBtn.innerHTML = originalBtnText;
+                    exportBtn.disabled = false;
+                }, 3000);
+
+            } catch (err) {
+                console.error("Export Error:", err);
+                alert("An error occurred while exporting the mission.");
+                exportBtn.innerHTML = originalBtnText;
+                exportBtn.disabled = false;
+            }
+        }, 100); // Short delay to allow UI to render the 'Exporting' state
+    });
+}
