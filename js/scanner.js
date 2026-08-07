@@ -761,10 +761,10 @@ const DynamsoftEngine = (() => {
 
         // Throws on any failure — ScannerFacade will catch and fall back
         async init() {
+            ScannerDebug.init(document.querySelector(".camera-container"));
             await Dynamsoft.License.LicenseManager.initLicense(CONFIG.LICENSE_KEY);
             Dynamsoft.Core.CoreModule.loadWasm(["DBR"]); // non-blocking preload
 
-            ScannerDebug.init(document.querySelector(".camera-container"));
             cvRouter       = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
             cameraView     = await Dynamsoft.DCE.CameraView.createInstance(readerEl);
             cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
@@ -888,6 +888,12 @@ const Html5QrEngine = (() => {
             if (!window.Html5Qrcode) {
                 throw new Error("Html5Qrcode class not found after script load");
             }
+            if (typeof window.Html5QrcodeSupportedFormats?.CODE_128 !== "number") {
+                throw new Error("html5-qrcode CODE_128 format is unavailable");
+            }
+            // A failed Dynamsoft initialization can leave its view in #reader.
+            // The fallback owns this element, so start it with an empty host.
+            document.getElementById("reader")?.replaceChildren();
             scanner = new Html5Qrcode("reader");
         },
 
@@ -898,14 +904,8 @@ const Html5QrEngine = (() => {
                     { facingMode: "environment" },
                     {
                         fps: 10,
-                        qrbox:            { width: 280, height: 120 },
                         formatsToSupport: [Html5QrcodeSupportedFormats.CODE_128],
                         disableFlip:      true,
-                        videoConstraints: {
-                            facingMode: { ideal: "environment" },
-                            width:      { ideal: 1280 },
-                            height:     { ideal: 720 },
-                        },
                     },
                     onScanSuccess,
                     onScanFailure
@@ -964,6 +964,7 @@ const Html5QrEngine = (() => {
 
 const ScannerFacade = {
     async init() {
+        let dynamsoftError = null;
         // ── Try Dynamsoft ────────────────────────────────────────────────────
         try {
             await withTimeout(
@@ -977,6 +978,7 @@ const ScannerFacade = {
             console.log("[Scanner] Engine: Dynamsoft Barcode Reader 11.4 ✓");
             return;
         } catch (err) {
+            dynamsoftError = err;
             ScannerDebug.error(`Dynamsoft initialization: ${err?.message || err}`);
             console.warn(
                 "[Scanner] Dynamsoft unavailable. Falling back to html5-qrcode.\n" +
@@ -994,11 +996,20 @@ const ScannerFacade = {
             State.activeEngine = Html5QrEngine;
             State.engineName   = "html5qrcode";
             State.ready        = true;
+            ScannerDebug.set("engine", "html5qrcode (fallback)");
+            ScannerDebug.set("capture", "Fallback active");
+            ScannerDebug.set("template", "CODE_128 only");
             console.log("[Scanner] Engine: html5-qrcode (fallback) ✓");
             return;
         } catch (err2) {
-            console.error("[Scanner] Both engines failed to initialize:", err2);
-            handleFatalError(err2);
+            const combinedError = new Error(
+                `Dynamsoft initialization failed: ${dynamsoftError?.message || dynamsoftError}. ` +
+                `html5-qrcode initialization failed: ${err2?.message || err2}`
+            );
+            ScannerDebug.set("engine", "none");
+            ScannerDebug.error(combinedError);
+            console.error("[Scanner] Both engines failed to initialize:", combinedError);
+            handleFatalError(combinedError);
         }
     },
 };
