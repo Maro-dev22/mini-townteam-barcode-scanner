@@ -67,11 +67,18 @@ const ScannerDebug = (() => {
     const state = {
         engine: "Dynamsoft",
         camera: "PENDING",
+        videoTracks: 0,
+        videoFrames: 0,
         capture: "PENDING",
-        decoder: "CODE_128",
-        callbacks: 0,
-        frames: 0,
+        template: "ReadSingleBarcode: PENDING",
+        code128: "PENDING",
+        resultCallbacks: 0,
+        barcodeItems: 0,
+        routerFrames: 0,
+        sourceFrames: 0,
+        cvrStatus: "PENDING",
         detected: "—",
+        lastError: "—",
     };
 
     function render() {
@@ -79,11 +86,18 @@ const ScannerDebug = (() => {
         panel.textContent = [
             `Engine: ${state.engine}`,
             `Camera: ${state.camera}`,
+            `Video tracks: ${state.videoTracks}`,
+            `Video frames: ${state.videoFrames}`,
             `Capture: ${state.capture}`,
-            `Decoder: ${state.decoder}`,
-            `Router frames: ${state.frames}`,
-            `Callbacks: ${state.callbacks}`,
+            `Template: ${state.template}`,
+            `CODE_128 configured: ${state.code128}`,
+            `Router frames: ${state.routerFrames}`,
+            `CVR source frames: ${state.sourceFrames}`,
+            `CVR status: ${state.cvrStatus}`,
+            `Result callbacks: ${state.resultCallbacks}`,
+            `Barcode items: ${state.barcodeItems}`,
             `Detected: ${state.detected}`,
+            `Last error: ${state.lastError}`,
         ].join("\n");
     }
 
@@ -107,16 +121,25 @@ const ScannerDebug = (() => {
         },
         reset() {
             state.camera = "PENDING";
+            state.videoTracks = 0;
+            state.videoFrames = 0;
             state.capture = "PENDING";
-            state.callbacks = 0;
-            state.frames = 0;
+            state.resultCallbacks = 0;
+            state.barcodeItems = 0;
+            state.routerFrames = 0;
+            state.sourceFrames = 0;
+            state.cvrStatus = "PENDING";
             state.detected = "—";
+            state.lastError = "—";
             render();
         },
         set(key, value) { state[key] = value; render(); },
-        callback(text) {
-            state.callbacks += 1;
-            if (text) state.detected = text;
+        increment(key) {
+            state[key] = (Number(state[key]) || 0) + 1;
+            render();
+        },
+        error(error) {
+            state.lastError = String(error?.message || error || "Unknown error");
             render();
         },
     };
@@ -456,37 +479,113 @@ const DynamsoftEngine = (() => {
     let cameraOpen  = false;
     let capturing   = false;
     let torchOn     = false;
+    let videoFrameRequestId = null;
+    let videoFrameFallback = null;
+    let videoFrameCount = 0;
+    let routerFrameCount = 0;
+    let genericResultLogCount = 0;
+    let decodedResultLogCount = 0;
 
     let pinchStartDist = 0;
     let pinchStartZoom = 1;
 
     const readerEl = document.getElementById("reader");
 
+    function recordError(context, error) {
+        const message = `${context}: ${error?.message || error}`;
+        ScannerDebug.error(message);
+        console.error(`[Scanner Debug] ${message}`, error);
+    }
+
+    function stopVideoFrameMonitor() {
+        const video = readerEl?.querySelector("video");
+        if (videoFrameRequestId && video?.cancelVideoFrameCallback) {
+            video.cancelVideoFrameCallback(videoFrameRequestId);
+        }
+        if (videoFrameFallback) clearInterval(videoFrameFallback);
+        videoFrameRequestId = null;
+        videoFrameFallback = null;
+    }
+
+    function startVideoFrameMonitor(video) {
+        stopVideoFrameMonitor();
+        videoFrameCount = 0;
+        const update = () => ScannerDebug.set("videoFrames", ++videoFrameCount);
+        if (video?.requestVideoFrameCallback) {
+            const next = () => {
+                update();
+                videoFrameRequestId = video.requestVideoFrameCallback(next);
+            };
+            videoFrameRequestId = video.requestVideoFrameCallback(next);
+            return;
+        }
+
+        let previousTime = video?.currentTime ?? 0;
+        videoFrameFallback = setInterval(() => {
+            if (video && video.currentTime !== previousTime) {
+                previousTime = video.currentTime;
+                update();
+            }
+        }, 250);
+    }
+
+    async function getVideoAndTracks(timeoutMs = 1000) {
+        const startedAt = Date.now();
+        while (Date.now() - startedAt < timeoutMs) {
+            const video = readerEl?.querySelector("video");
+            const tracks = video?.srcObject?.getVideoTracks?.() || [];
+            if (tracks.length) return { video, tracks };
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        return { video: readerEl?.querySelector("video"), tracks: [] };
+    }
+
     // ── Barcode result receiver ─────────────────────────────────────────────
     function onDecodedBarcodesReceived(result) {
         const items = result?.barcodeResultItems;
-        ScannerDebug.callback();
+        ScannerDebug.increment("resultCallbacks");
         console.log("[Scanner Debug] Result callback fired");
         console.log("[Scanner Debug] Barcode items:", items?.length || 0);
+        if (decodedResultLogCount++ < 3) {
+            console.log("[Scanner Debug] Decoded result structure:", {
+                keys: Object.keys(result || {}), result,
+            });
+        }
         if (!items?.length) return;
         const item   = items[0];
         const points = item.location?.points ?? null;
+        ScannerDebug.set("barcodeItems", items.length);
         ScannerDebug.set("detected", item.text || "(empty)");
         console.log("[Scanner Debug] Barcode text:", item.text);
         onBarcodeDecoded(item.text, points);
     }
 
-    function onCapturedResultReceived() {
-        ScannerDebug.set("frames", ScannerDebugFrames.next());
+    function onCapturedResultReceived(result) {
+        routerFrameCount += 1;
+        const barcodeItems = result?.barcodeResultItems || [];
+        ScannerDebug.set("routerFrames", routerFrameCount);
+        ScannerDebug.set("barcodeItems", barcodeItems.length);
+        ScannerDebug.set("cvrStatus", barcodeItems.length
+            ? `BARCODE ITEMS: ${barcodeItems.length}`
+            : `RECEIVING / ZERO BARCODES`);
+
+        if (genericResultLogCount++ < 3) {
+            console.log("[Scanner Debug] CVR captured result structure:", {
+                keys: Object.keys(result || {}),
+                itemCount: result?.items?.length ?? 0,
+                barcodeItemCount: barcodeItems.length,
+                result,
+            });
+        }
+
+        if (barcodeItems.length === 0 && (routerFrameCount === 1 || routerFrameCount === 30)) {
+            console.warn(`[Scanner Debug] CVR received ${routerFrameCount} frame(s) but detected zero barcodes.`);
+        }
     }
 
-    const ScannerDebugFrames = (() => {
-        let count = 0;
-        return {
-            reset() { count = 0; },
-            next() { count += 1; return count; },
-        };
-    })();
+    function onOriginalImageResultReceived() {
+        ScannerDebug.increment("sourceFrames");
+    }
 
     // ── Decoder settings (CODE_128 only, single barcode, fastest) ──────────
     async function configureDecoder() {
@@ -494,8 +593,17 @@ const DynamsoftEngine = (() => {
         settings.barcodeSettings.barcodeFormatIds =
             Dynamsoft.DBR.EnumBarcodeFormat.BF_CODE_128;
         settings.barcodeSettings.expectedBarcodesCount = 1;
+        settings.outputOriginalImage = true;
         await cvRouter.updateSettings("ReadSingleBarcode", settings);
-        console.log("[Scanner Debug] Decoder configured: CODE_128");
+        const effectiveSettings = await cvRouter.getSimplifiedSettings("ReadSingleBarcode");
+        const configuredId = effectiveSettings?.barcodeSettings?.barcodeFormatIds;
+        const expectedId = Dynamsoft.DBR.EnumBarcodeFormat.BF_CODE_128;
+        const isCode128 = configuredId === expectedId;
+        ScannerDebug.set("code128", `${isCode128 ? "YES" : "NO"} (${String(configuredId)})`);
+        console.log("[Scanner Debug] CODE_128 enum value:", expectedId);
+        console.log("[Scanner Debug] Effective barcode format IDs:", configuredId);
+        console.log("[Scanner Debug] Effective ReadSingleBarcode settings:", effectiveSettings);
+        if (!isCode128) throw new Error("ReadSingleBarcode did not retain BF_CODE_128 after updateSettings");
     }
 
     // ── ROI: only center 80%×40% of frame is decoded ───────────────────────
@@ -656,22 +764,26 @@ const DynamsoftEngine = (() => {
             await Dynamsoft.License.LicenseManager.initLicense(CONFIG.LICENSE_KEY);
             Dynamsoft.Core.CoreModule.loadWasm(["DBR"]); // non-blocking preload
 
+            ScannerDebug.init(document.querySelector(".camera-container"));
             cvRouter       = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
             cameraView     = await Dynamsoft.DCE.CameraView.createInstance(readerEl);
             cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
 
             await cvRouter.setInput(cameraEnhancer);
+            const templateNames = await cvRouter.getTemplateNames();
+            if (!templateNames.includes("ReadSingleBarcode")) {
+                throw new Error(`ReadSingleBarcode is unavailable. Templates: ${templateNames.join(", ")}`);
+            }
+            ScannerDebug.set("template", "ReadSingleBarcode: CONFIGURING");
+            console.log("[Scanner Debug] Available templates:", templateNames);
             await configureDecoder();
             await cvRouter.addResultReceiver({
                 onCapturedResultReceived,
+                onOriginalImageResultReceived,
                 onDecodedBarcodesReceived,
             });
             console.log("[Scanner Debug] Dynamsoft initialized");
 
-            const container = document.querySelector(".camera-container");
-            if (container) {
-                ScannerDebug.init(container);
-            }
         },
 
         async open() {
@@ -679,17 +791,23 @@ const DynamsoftEngine = (() => {
 
             if (!cameraOpen) {
                 ScannerDebug.reset();
-                ScannerDebugFrames.reset();
+                routerFrameCount = 0;
+                genericResultLogCount = 0;
+                decodedResultLogCount = 0;
                 StatusBadge.info("Starting Camera...");
                 try {
                     await cameraEnhancer.open();
                     cameraOpen = true;
-                    const video = readerEl?.querySelector("video");
-                    ScannerDebug.set("camera", video?.srcObject ? "OK / VIDEO ACTIVE" : "OK / VIDEO STARTING");
+                    const { video, tracks } = await getVideoAndTracks();
+                    const trackCount = tracks.length;
+                    ScannerDebug.set("videoTracks", trackCount);
+                    ScannerDebug.set("camera", trackCount > 0 ? "OK" : "ERROR: no active video track");
+                    if (!trackCount) throw new Error("CameraEnhancer opened without an active video track");
+                    startVideoFrameMonitor(video);
                     console.log("[Scanner Debug] Camera opened");
                 } catch (err) {
                     ScannerDebug.set("camera", `ERROR: ${err?.message || err}`);
-                    console.error("[Scanner Debug] Camera open failed:", err);
+                    recordError("Camera open", err);
                     throw err;
                 }
 
@@ -706,11 +824,12 @@ const DynamsoftEngine = (() => {
                 await cvRouter.startCapturing("ReadSingleBarcode");
                 capturing = true;
                 ScannerDebug.set("capture", "OK");
+                ScannerDebug.set("template", "ReadSingleBarcode: STARTED");
                 console.log("[Scanner Debug] Capture started");
                 StatusBadge.scanning();
             } catch (err) {
                 ScannerDebug.set("capture", `ERROR: ${err?.message || err}`);
-                console.error("[Scanner Debug] Capture start failed:", err);
+                recordError("Capture start", err);
                 throw err;
             }
         },
@@ -721,19 +840,22 @@ const DynamsoftEngine = (() => {
                 cvRouter.stopCapturing();
                 capturing = false;
                 StatusBadge.processing();
-            } catch (_) { /* ignore */ }
+            } catch (err) {
+                recordError("Capture pause", err);
+            }
         },
 
         async close() {
             DuplicateGuard.reset();
+            stopVideoFrameMonitor();
 
             try {
                 if (capturing) { cvRouter.stopCapturing(); capturing = false; }
-            } catch (err) { console.error("[Scanner Debug] Capture stop failed:", err); }
+            } catch (err) { recordError("Capture stop", err); }
 
             try {
                 if (cameraOpen) { await cameraEnhancer.close(); cameraOpen = false; }
-            } catch (err) { console.error("[Scanner Debug] Camera close failed:", err); }
+            } catch (err) { recordError("Camera close", err); }
             closeCameraOverlay();
             StatusBadge.ready();
         },
@@ -855,6 +977,7 @@ const ScannerFacade = {
             console.log("[Scanner] Engine: Dynamsoft Barcode Reader 11.4 ✓");
             return;
         } catch (err) {
+            ScannerDebug.error(`Dynamsoft initialization: ${err?.message || err}`);
             console.warn(
                 "[Scanner] Dynamsoft unavailable. Falling back to html5-qrcode.\n" +
                 "  Reason:", err?.message || err
