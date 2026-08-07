@@ -17,7 +17,7 @@
 
 const CONFIG = {
     // Dynamsoft 24-hour public trial key
-    LICENSE_KEY: "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==",
+    LICENSE_KEY: "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA2MDkwNzI1LU1UQTJNRGt3TnpJMUxYZGxZaTFVY21saGJGQnliMm8iLCJtYWluU2VydmVyVVJMIjoiaHR0cHM6Ly9tZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwib3JnYW5pemF0aW9uSUQiOiIxMDYwOTA3MjUiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwiY2hlY2tDb2RlIjoxNDk3OTEwNjA1fQ==",
 
     // Fallback CDN (loaded only if Dynamsoft fails)
     HTML5QRCODE_CDN: "https://unpkg.com/html5-qrcode",
