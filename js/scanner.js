@@ -59,6 +59,69 @@ const State = {
     ready: false,
 };
 
+// Temporary phone-visible diagnostics for the Dynamsoft pipeline. Keep this
+// independent from app.js so a missing decode can be separated from business
+// logic on the device that owns the camera.
+const ScannerDebug = (() => {
+    let panel = null;
+    const state = {
+        engine: "Dynamsoft",
+        camera: "PENDING",
+        capture: "PENDING",
+        decoder: "CODE_128",
+        callbacks: 0,
+        frames: 0,
+        detected: "—",
+    };
+
+    function render() {
+        if (!panel) return;
+        panel.textContent = [
+            `Engine: ${state.engine}`,
+            `Camera: ${state.camera}`,
+            `Capture: ${state.capture}`,
+            `Decoder: ${state.decoder}`,
+            `Router frames: ${state.frames}`,
+            `Callbacks: ${state.callbacks}`,
+            `Detected: ${state.detected}`,
+        ].join("\n");
+    }
+
+    return {
+        init(container) {
+            if (!panel) {
+                panel = document.createElement("pre");
+                panel.id = "scannerDebugPanel";
+                panel.setAttribute("aria-live", "polite");
+                Object.assign(panel.style, {
+                    position: "absolute", right: "12px", bottom: "58px", zIndex: "20",
+                    margin: "0", maxWidth: "calc(100% - 24px)", padding: "8px 10px",
+                    color: "#d7ffe1", background: "rgba(0, 0, 0, 0.72)",
+                    border: "1px solid rgba(0, 230, 118, 0.7)", borderRadius: "6px",
+                    font: "11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace",
+                    whiteSpace: "pre-wrap", pointerEvents: "none",
+                });
+                container?.appendChild(panel);
+            }
+            render();
+        },
+        reset() {
+            state.camera = "PENDING";
+            state.capture = "PENDING";
+            state.callbacks = 0;
+            state.frames = 0;
+            state.detected = "—";
+            render();
+        },
+        set(key, value) { state[key] = value; render(); },
+        callback(text) {
+            state.callbacks += 1;
+            if (text) state.detected = text;
+            render();
+        },
+    };
+})();
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SECTION 3: UTILITIES
 // ─────────────────────────────────────────────────────────────────────────────
@@ -345,11 +408,6 @@ function onBarcodeDecoded(text, localizationPoints = null) {
     // Update status badge
     StatusBadge.detected();
 
-    // Draw corner markers if Dynamsoft provided location data
-    if (localizationPoints?.length >= 4) {
-        BarcodeCanvas.draw(localizationPoints, CONFIG.MARKER_COLOR_OK);
-    }
-
     // Delegate to app.js business logic (unchanged)
     window.searchBarcode(trimmed);
 }
@@ -407,11 +465,28 @@ const DynamsoftEngine = (() => {
     // ── Barcode result receiver ─────────────────────────────────────────────
     function onDecodedBarcodesReceived(result) {
         const items = result?.barcodeResultItems;
+        ScannerDebug.callback();
+        console.log("[Scanner Debug] Result callback fired");
+        console.log("[Scanner Debug] Barcode items:", items?.length || 0);
         if (!items?.length) return;
         const item   = items[0];
         const points = item.location?.points ?? null;
+        ScannerDebug.set("detected", item.text || "(empty)");
+        console.log("[Scanner Debug] Barcode text:", item.text);
         onBarcodeDecoded(item.text, points);
     }
+
+    function onCapturedResultReceived() {
+        ScannerDebug.set("frames", ScannerDebugFrames.next());
+    }
+
+    const ScannerDebugFrames = (() => {
+        let count = 0;
+        return {
+            reset() { count = 0; },
+            next() { count += 1; return count; },
+        };
+    })();
 
     // ── Decoder settings (CODE_128 only, single barcode, fastest) ──────────
     async function configureDecoder() {
@@ -420,6 +495,7 @@ const DynamsoftEngine = (() => {
             Dynamsoft.DBR.EnumBarcodeFormat.BF_CODE_128;
         settings.barcodeSettings.expectedBarcodesCount = 1;
         await cvRouter.updateSettings("ReadSingleBarcode", settings);
+        console.log("[Scanner Debug] Decoder configured: CODE_128");
     }
 
     // ── ROI: only center 80%×40% of frame is decoded ───────────────────────
@@ -586,57 +662,36 @@ const DynamsoftEngine = (() => {
 
             await cvRouter.setInput(cameraEnhancer);
             await configureDecoder();
-            cvRouter.addResultReceiver({ onDecodedBarcodesReceived });
+            await cvRouter.addResultReceiver({
+                onCapturedResultReceived,
+                onDecodedBarcodesReceived,
+            });
+            console.log("[Scanner Debug] Dynamsoft initialized");
 
             const container = document.querySelector(".camera-container");
             if (container) {
-                BarcodeCanvas.init();
-                FpsCounter.init(container);
-                initFocusIndicator(container);
+                ScannerDebug.init(container);
             }
-            attachPinchZoom(readerEl);
         },
 
         async open() {
             const container = document.querySelector(".camera-container");
 
             if (!cameraOpen) {
-                container?.classList.add("camera-starting");
+                ScannerDebug.reset();
+                ScannerDebugFrames.reset();
                 StatusBadge.info("Starting Camera...");
-
                 try {
-                    await cameraEnhancer.setResolution(
-                        CONFIG.RESOLUTION.width, CONFIG.RESOLUTION.height
-                    );
-                } catch (_) { /* optional */ }
-
-                await cameraEnhancer.open();
-                await selectBackCamera();
-                cameraOpen = true;
-
-                // Wait for video element to appear, then configure
-                await new Promise(r => setTimeout(r, 300));
-                await captureVideoTrack();
-                await applyROI();
-                await setContinuousExposure();
-
-                try {
-                    await cameraEnhancer.enableEnhancedFeatures(
-                        Dynamsoft.DCE.EnumEnhancedFeatures?.EF_ENHANCED_FOCUS
-                        ?? Dynamsoft.DCE.EnumEnhancerFeatures?.EF_ENHANCED_FOCUS
-                    );
-                } catch (_) { /* license may not cover this */ }
-
-                // Lock exposure after autofocus settles
-                setTimeout(() => lockExposure(), 1500);
-
-                // Re-read capabilities after open (torch support)
-                await captureVideoTrack();
-                if (container) initTorch(container);
-
-                container?.classList.remove("camera-starting");
-                AudioFeedback.startup();
-                if (CONFIG.DEBUG) FpsCounter.start();
+                    await cameraEnhancer.open();
+                    cameraOpen = true;
+                    const video = readerEl?.querySelector("video");
+                    ScannerDebug.set("camera", video?.srcObject ? "OK / VIDEO ACTIVE" : "OK / VIDEO STARTING");
+                    console.log("[Scanner Debug] Camera opened");
+                } catch (err) {
+                    ScannerDebug.set("camera", `ERROR: ${err?.message || err}`);
+                    console.error("[Scanner Debug] Camera open failed:", err);
+                    throw err;
+                }
 
             } else {
                 DuplicateGuard.reset();
@@ -650,9 +705,13 @@ const DynamsoftEngine = (() => {
             try {
                 await cvRouter.startCapturing("ReadSingleBarcode");
                 capturing = true;
+                ScannerDebug.set("capture", "OK");
+                console.log("[Scanner Debug] Capture started");
                 StatusBadge.scanning();
             } catch (err) {
-                console.warn("[Dynamsoft] startCapturing error:", err);
+                ScannerDebug.set("capture", `ERROR: ${err?.message || err}`);
+                console.error("[Scanner Debug] Capture start failed:", err);
+                throw err;
             }
         },
 
@@ -666,22 +725,15 @@ const DynamsoftEngine = (() => {
         },
 
         async close() {
-            FpsCounter.stop();
-            torchOn = false;
-            document.getElementById("torchBtn")?.remove();
             DuplicateGuard.reset();
-            BarcodeCanvas.clear();
 
             try {
                 if (capturing) { cvRouter.stopCapturing(); capturing = false; }
-            } catch (_) { /* ignore */ }
+            } catch (err) { console.error("[Scanner Debug] Capture stop failed:", err); }
 
             try {
                 if (cameraOpen) { await cameraEnhancer.close(); cameraOpen = false; }
-            } catch (_) { /* ignore */ }
-
-            videoTrack   = null;
-            capabilities = {};
+            } catch (err) { console.error("[Scanner Debug] Camera close failed:", err); }
             closeCameraOverlay();
             StatusBadge.ready();
         },
