@@ -16,7 +16,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CONFIG = {
-    // Dynamsoft 24-hour public trial key
+    // Current Dynamsoft 30-day trial key.
     LICENSE_KEY: "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA2MDkwNzI1LU1UQTJNRGt3TnpJMUxYZGxZaTFVY21saGJGQnliMm8iLCJtYWluU2VydmVyVVJMIjoiaHR0cHM6Ly9tZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwib3JnYW5pemF0aW9uSUQiOiIxMDYwOTA3MjUiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwiY2hlY2tDb2RlIjoxNDk3OTEwNjA1fQ==",
 
     // Fallback CDN (loaded only if Dynamsoft fails)
@@ -155,6 +155,54 @@ function withTimeout(promise, ms, label) {
         setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
     );
     return Promise.race([promise, timeout]);
+}
+
+// The sole authoritative Dynamsoft license path. It must complete before
+// creating a router or loading the barcode engine resources.
+async function initializeDynamsoftLicense() {
+    const trialKey = CONFIG.LICENSE_KEY;
+
+    const isConfigured =
+        typeof trialKey === "string" &&
+        trialKey.trim().length > 0;
+
+    console.log(
+        `[Scanner License] License configured: ${isConfigured ? "YES" : "NO"}`
+    );
+
+    if (!isConfigured) {
+        throw new Error("Dynamsoft trial key is missing or empty");
+    }
+
+    console.log(
+        "[Scanner License] License initialization requested: YES"
+    );
+
+    try {
+        await Dynamsoft.License.LicenseManager.initLicense(
+            trialKey,
+            { executeNow: true }
+        );
+
+        console.log(
+            "[Scanner License] License initialization completed: YES"
+        );
+
+    } catch (err) {
+
+        console.error(
+            "[Scanner License] License initialization failed:",
+            err
+        );
+
+        ScannerDebug.error(
+            `License initialization: ${err?.message || err}`
+        );
+
+        throw err;
+    }
+
+    Dynamsoft.Core.CoreModule.loadWasm();
 }
 
 // Dynamically inject a <script> tag and wait for it to load
@@ -762,8 +810,7 @@ const DynamsoftEngine = (() => {
         // Throws on any failure — ScannerFacade will catch and fall back
         async init() {
             ScannerDebug.init(document.querySelector(".camera-container"));
-            await Dynamsoft.License.LicenseManager.initLicense(CONFIG.LICENSE_KEY);
-            Dynamsoft.Core.CoreModule.loadWasm(["DBR"]); // non-blocking preload
+            await initializeDynamsoftLicense();
 
             cvRouter       = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
             cameraView     = await Dynamsoft.DCE.CameraView.createInstance(readerEl);
@@ -1106,12 +1153,3 @@ document.addEventListener("visibilitychange", () => {
 
 scanBtn.addEventListener("click",        openScanner);
 closeCameraBtn.addEventListener("click", closeScanner);
-
-// Silently pre-warm Dynamsoft WASM on page load so first scan is instant.
-// If this fails (network/license), it's handled gracefully in ScannerFacade.init().
-(async () => {
-    try {
-        await Dynamsoft.License.LicenseManager.initLicense(CONFIG.LICENSE_KEY);
-        Dynamsoft.Core.CoreModule.loadWasm(["DBR"]);
-    } catch (_) { /* will be handled properly on first openScanner() */ }
-})();
