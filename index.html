@@ -18,19 +18,18 @@
       <img src="town.jpeg" alt="MINI TOWNTEAM Logo" class="logo">
       <h1>Barcode Picker</h1>
 
-<p class="version">Version 1.0</p>
+<p class="version">Version 2.8</p>
     </header>
+<section class="card">
 
-    <!-- Upload Excel -->
-    <section class="card">
-      <h2>Upload Excel</h2>
+    <h2>Upload Mission File</h2>
 
-      <input
-        type="file"
-        id="excelFile"
-        accept=".xlsx,.xls">
-    </section>
+    <input
+         type="file"
+         id="missionFile"
+         accept=".xlsx,.xls">
 
+</section>
     <!-- Scanner -->
     <section class="card">
 
@@ -48,11 +47,30 @@
 
     </section>
 
+    <!-- Dashboard & Progress -->
+    <section class="card dashboard">
+      <h2>Dashboard & Progress</h2>
+      
+      <div class="progress-wrapper">
+        <div class="progress-bar-bg">
+          <div id="progressBar" class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-stats">
+          <span id="remainingCounter">Remaining: 0</span>
+          <span id="totalCounter">Total: 0</span>
+        </div>
+      </div>
+
+      <div class="last-scanned">
+        <h3>Last Scanned</h3>
+        <p id="lastScannedItem">-----</p>
+      </div>
+    </section>
     <!-- Product Details -->
     <section class="card details">
 
-      <h3>Barcode</h3>
-      <p id="barcodeValue">-----</p>
+     <h3>Item Code</h3>
+     <p id="itemCodeValue">-----</p>
 
       <h3>Color</h3>
       <p id="colorValue">-----</p>
@@ -80,6 +98,12 @@
 </button>
 
 </div>
+
+    <section class="card" style="margin-top: 20px;">
+        <button id="exportBtn" style="background-color: #007bff; color: white;">
+            📥 Export File 
+        </button>
+    </section>
   </div>
 <!-- Camera Overlay -->
 <div id="cameraOverlay" class="camera-overlay">
@@ -106,7 +130,7 @@
 
 </div>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@11.4.3000/dist/dbr.bundle.js"></script>
 
 <script src="js/excel.js"></script>
 <script src="js/ui.js"></script>
