@@ -160,23 +160,14 @@ function withTimeout(promise, ms, label) {
 // The sole authoritative Dynamsoft license path. It must complete before
 // creating a router or loading the barcode engine resources.
 async function initializeDynamsoftLicense() {
-    const trialKey = CONFIG.LICENSE_KEY;
+    const trialKey = CONFIG.LICENSE_KEY?.trim();
 
-    const isConfigured =
-        typeof trialKey === "string" &&
-        trialKey.trim().length > 0;
-
-    console.log(
-        `[Scanner License] License configured: ${isConfigured ? "YES" : "NO"}`
-    );
-
-    if (!isConfigured) {
-        throw new Error("Dynamsoft trial key is missing or empty");
+    if (!trialKey) {
+        throw new Error("Dynamsoft Trial Key is missing or empty");
     }
 
-    console.log(
-        "[Scanner License] License initialization requested: YES"
-    );
+    console.log("[Scanner License] License configured: YES");
+    console.log("[Scanner License] License initialization requested: YES");
 
     try {
         await Dynamsoft.License.LicenseManager.initLicense(
@@ -188,22 +179,25 @@ async function initializeDynamsoftLicense() {
             "[Scanner License] License initialization completed: YES"
         );
 
+        await Dynamsoft.Core.CoreModule.loadWasm();
+
+        console.log("[Scanner License] WASM loaded: YES");
+
     } catch (err) {
+        const message = err?.message || String(err);
 
         console.error(
             "[Scanner License] License initialization failed:",
-            err
+            message
         );
 
-        ScannerDebug.error(
-            `License initialization: ${err?.message || err}`
-        );
+        ScannerDebug.error(`License initialization: ${message}`);
 
         throw err;
     }
+ }
+    
 
-    Dynamsoft.Core.CoreModule.loadWasm();
-}
 
 // Dynamically inject a <script> tag and wait for it to load
 function loadScript(src) {
