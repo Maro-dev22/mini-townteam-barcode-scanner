@@ -167,16 +167,22 @@ async function initializeDynamsoftLicense() {
     }
 
     console.log("[Scanner License] License configured: YES");
+    console.log("[Scanner License] License key length:", trialKey.length);
     console.log("[Scanner License] License initialization requested: YES");
 
     try {
-        await Dynamsoft.License.LicenseManager.initLicense(
+        const result = await Dynamsoft.License.LicenseManager.initLicense(
             trialKey,
             { executeNow: true }
         );
 
         console.log(
             "[Scanner License] License initialization completed: YES"
+        );
+
+        console.log(
+            "[Scanner License] initLicense result:",
+            result
         );
 
         await Dynamsoft.Core.CoreModule.loadWasm();
@@ -187,15 +193,17 @@ async function initializeDynamsoftLicense() {
         const message = err?.message || String(err);
 
         console.error(
-            "[Scanner License] License initialization failed:",
+            "[Scanner License] License initialization FAILED:",
             message
         );
 
-        ScannerDebug.error(`License initialization: ${message}`);
+        ScannerDebug.error(
+            `License initialization: ${message}`
+        );
 
         throw err;
     }
- }
+}
     
 
 
