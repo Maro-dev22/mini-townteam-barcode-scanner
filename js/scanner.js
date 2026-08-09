@@ -649,13 +649,17 @@ const DynamsoftEngine = (() => {
     }
 
     // ── ROI: only center 80%×40% of frame is decoded ───────────────────────
-    async function applyROI() {
+  async function applyROI() {
     try {
-        // await cameraEnhancer.setScanRegion(CONFIG.SCAN_REGION);
+        await cameraEnhancer.setScanRegion(CONFIG.SCAN_REGION);
 
         cameraView?.setScanLaserVisible?.(false);
         cameraView?.setScanRegionMaskVisible?.(false);
-    } catch (_) {}
+
+        console.log("[Scanner] Scan ROI applied:", CONFIG.SCAN_REGION);
+    } catch (err) {
+        recordError("Apply ROI", err);
+    }
 }
     // ── Select back-facing camera ───────────────────────────────────────────
     async function selectBackCamera() {
@@ -809,7 +813,7 @@ const DynamsoftEngine = (() => {
             cvRouter       = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
             cameraView     = await Dynamsoft.DCE.CameraView.createInstance(readerEl);
             cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
-
+            await applyROI();  
             await cvRouter.setInput(cameraEnhancer);
             const templateNames = await cvRouter.getTemplateNames();
             if (!templateNames.includes("ReadSingleBarcode")) {
