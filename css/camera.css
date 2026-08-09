@@ -1,13 +1,12 @@
-/* =========================
-   Camera Overlay
-========================= */
+/* =========================================================
+   CAMERA OVERLAY
+========================================================= */
 
 .camera-overlay {
-
-    position: fixed;
+     position: fixed;
     inset: 0;
 
-    background: rgba(0,0,0,.88);
+    background: #000;
 
     display: flex;
     justify-content: center;
@@ -16,266 +15,737 @@
     opacity: 0;
     visibility: hidden;
 
-    transition: opacity .3s ease, visibility .3s ease;
+    transition:
+        opacity 0.25s ease,
+        visibility 0.25s ease;
 
     z-index: 99999;
-
-}
+ }
 
 .camera-overlay.show {
-
-    opacity: 1;
+     opacity: 1;
     visibility: visible;
-
 }
+ 
 
-@keyframes fadeIn {
-
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-
-}
-
-/* =========================
-   Camera Container
-========================= */
+/* =========================================================
+   CAMERA CONTAINER
+========================================================= */
 
 .camera-container {
-
     width: 100%;
-    max-width: 430px;
-
-    padding: 20px;
-
-    text-align: center;
+    max-width: 600px;
+    height: 100dvh;
 
     position: relative;
 
+    display: flex;
+    flex-direction: column;
+
+    padding:
+        max(18px, env(safe-area-inset-top))
+        16px
+        max(18px, env(safe-area-inset-bottom));
+
+    text-align: center;
+
+    overflow: hidden;
 }
 
 .camera-container h2 {
+    flex: 0 0 auto;
+
+    margin: 8px 0 14px;
 
     color: #fff;
 
-    font-size: 24px;
+    font-size: 21px;
+    font-weight: 600;
 
-    margin-bottom: 20px;
-
+    z-index: 500;
 }
 
-/* =========================
-   Camera Video
-========================= */
 
-#video {
+/* =========================================================
+   DYNAMSOFT READER
+========================================================= */
 
+/* =========================================================
+   CAMERA VIEW CONTAINER
+========================================================= */
+
+.camera-view {
+    position: relative;
     width: 100%;
-
-    border-radius: 22px;
-
-    object-fit: cover;
-
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
-
-    border: 2px solid rgba(255,255,255,.08);
-
-    box-shadow: 0 15px 40px rgba(0,0,0,.35);
-
-    transform: scale(.92);
-
-    transition: transform .3s ease;
-
+    background: #050505;
+    border-radius: 22px;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.55);
 }
 
-.camera-overlay.show #video {
+/* =========================================================
+   DYNAMSOFT READER
+========================================================= */
 
-    transform: scale(1);
-
-}
-
-/* =========================
-   Camera Text
-========================= */
-
-.camera-text {
-
-    color: #ddd;
-
-    margin-top: 18px;
-
-    font-size: 15px;
-
-}
-
-/* =========================
-   Close Button
-========================= */
-
-#closeCameraBtn {
-
+#reader {
+    position: absolute;
+    inset: 0;
     width: 100%;
-
-    margin-top: 22px;
-
-    padding: 14px;
-
-    border: none;
-
-    border-radius: 14px;
-
-    background: #d83b3b;
-
-    color: #fff;
-
-    font-size: 17px;
-
-    cursor: pointer;
-
+    height: 100%;
 }
 
-#closeCameraBtn:hover {
-
-    background: #bf2b2b;
-
+.dce-video-container {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
-/* =========================
-   Scan Frame
-========================= */
+/* Dynamsoft video */
 
-.scan-frame {
+#reader video,
+.dce-video-container video {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+    object-fit: cover !important;
+    border-radius: 22px;
+}
+
+/* Hide Dynamsoft's default scan UI */
+
+#reader .dce-scanarea-holder {
+    display: none !important;
+}
+
+/* =========================================================
+   CAMERA OVERLAY GRADIENT
+========================================================= */
+
+.camera-view::after {
+    content: "";
 
     position: absolute;
-
-    left: 50%;
-
-    top: 48%;
-
-    transform: translate(-50%, -50%);
-
-    width: 240px;
-
-    height: 130px;
+    inset: 0;
 
     pointer-events: none;
 
-    overflow: hidden;
+    background:
+        linear-gradient(
+            to bottom,
+            rgba(0,0,0,0.35),
+            transparent 22%,
+            transparent 78%,
+            rgba(0,0,0,0.45)
+        );
 
-    border-left: 5px solid transparent;
-    border-right: 5px solid transparent;
-
+    z-index: 5;
 }
 
-/* =========================
-   Frame Corners
-========================= */
 
-.scan-frame::before,
+/* =========================================================
+   SCAN FRAME
+========================================================= */
+
+.scan-frame {
+     position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    transform: translate(-50%, -50%);
+
+    width: min(78%, 330px);
+    aspect-ratio: 2.2 / 1;
+
+    pointer-events: none;
+
+    z-index: 50;
+}
+
+
+/* Dark area around scan box */
+
+.scan-frame::before {
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    border-radius: 14px;
+
+    box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.28);
+
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+
+/* =========================================================
+   SCAN CORNERS
+========================================================= */
+ 
 .scan-frame::after {
+    content: "";
 
+    position: absolute;
+    inset: 0;
+
+    border-radius: 14px;
+
+    border:
+        3px solid transparent;
+
+    background:
+        linear-gradient(#000, #000) padding-box,
+        linear-gradient(
+            90deg,
+            #00e676 0 22%,
+            transparent 22% 78%,
+            #00e676 78% 100%
+        ) border-box;
+
+    opacity: 0;
+}
+
+
+/* Four actual corners */
+
+.scan-frame {
+    --corner: #00e676;
+}
+
+
+/* Top-left */
+
+.scan-frame > .scan-line::before,
+.scan-frame > .scan-line::after {
     content: "";
 
     position: absolute;
 
-    width: 45px;
+    width: 38px;
+    height: 38px;
 
-    height: 45px;
+    border-color: var(--corner);
+    border-style: solid;
 
-    border: 5px solid #00d26a;
-
+    filter:
+        drop-shadow(0 0 6px rgba(0,230,118,0.75));
 }
 
-/* Top Left */
 
-.scan-frame::before {
+/* Top-left */
 
-    left: 0;
-    top: 0;
+.scan-frame > .scan-line::before {
+    left: -2px;
+    top: -2px;
 
-    border-right: none;
-    border-bottom: none;
-
-    border-radius: 12px 0 0 0;
-
+    border-width: 4px 0 0 4px;
+    border-radius: 10px 0 0 0;
 }
 
-/* Bottom Right */
 
-.scan-frame::after {
+/* Top-right */
 
-    right: 0;
-    bottom: 0;
+.scan-frame > .scan-line::after {
+    right: -2px;
+    top: -2px;
 
-    border-left: none;
-    border-top: none;
-
-    border-radius: 0 0 12px 0;
-
+    border-width: 4px 4px 0 0;
+    border-radius: 0 10px 0 0;
 }
 
-/* =========================
-   Laser Animation
-========================= */
+
+/* =========================================================
+   EXTRA CORNERS
+   Using scan-frame background layers
+========================================================= */
+
+.scan-frame {
+    background:
+        linear-gradient(var(--corner), var(--corner)) left top / 38px 4px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left top / 4px 38px no-repeat,
+
+        linear-gradient(var(--corner), var(--corner)) right top / 38px 4px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right top / 4px 38px no-repeat,
+
+        linear-gradient(var(--corner), var(--corner)) left bottom / 38px 4px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) left bottom / 4px 38px no-repeat,
+
+        linear-gradient(var(--corner), var(--corner)) right bottom / 38px 4px no-repeat,
+        linear-gradient(var(--corner), var(--corner)) right bottom / 4px 38px no-repeat;
+}
+
+
+/* =========================================================
+   LASER
+========================================================= */
 
 .scan-line {
+     position: absolute;
 
-    position: absolute;
+    left: 6%;
+    right: 6%;
 
-    left: 7.5%;
-
-    width: 85%;
-
-    height: 4px;
+    height: 2px;
 
     background: #00ff88;
 
     box-shadow:
-        0 0 10px #00ff88,
-        0 0 20px #00ff88;
+        0 0 5px #00ff88,
+        0 0 12px #00ff88,
+        0 0 22px rgba(0,255,136,0.7);
 
-    animation: scanMove 2s infinite ease-in-out;
+    animation:
+        scanMove 2s
+        infinite
+        ease-in-out;
 
+    z-index: 60;
 }
 
 @keyframes scanMove {
 
     0% {
-
-        top: 0;
-
-        opacity: .5;
-
+        top: 8%;
+        opacity: 0.35;
     }
 
     50% {
-
-        top: calc(100% - 4px);
-
-        opacity: 1;
-
+        top: 92%;
+         opacity: 1;
     }
 
     100% {
+        top: 8%;
+        opacity: 0.35;
+    }
+}
 
-        top: 0;
 
-        opacity: .5;
+/* =========================================================
+   CAMERA TEXT / STATUS
+========================================================= */
 
+.camera-text {
+    flex: 0 0 auto;
+
+    margin: 14px 0 10px;
+
+    min-height: 24px;
+
+    color: #ddd;
+
+    font-size: 14px;
+    line-height: 1.4;
+
+    z-index: 500;
+}
+
+
+/* =========================================================
+   STATUS BADGE
+========================================================= */
+
+.scan-status-badge {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 30px;
+
+    padding: 5px 15px;
+
+    border-radius: 999px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    letter-spacing: 0.3px;
+
+    backdrop-filter: blur(8px);
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease;
+}
+
+.scan-status-badge.ready {
+    background: rgba(255,255,255,0.12);
+    color: #ddd;
+}
+
+.scan-status-badge.active {
+    background: rgba(37,99,235,0.25);
+    color: #93c5fd;
+}
+
+.scan-status-badge.found {
+    background: rgba(22,163,74,0.25);
+    color: #86efac;
+}
+
+.scan-status-badge.process {
+    background: rgba(234,179,8,0.25);
+    color: #fde047;
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+#closeCameraBtn {
+    flex: 0 0 auto;
+
+    width: 100%;
+
+    margin-top: 4px;
+
+    padding: 13px 16px;
+
+    border:
+        1px solid
+        rgba(255,255,255,0.12);
+
+    border-radius: 14px;
+
+    background:
+        rgba(255,255,255,0.08);
+
+    color: #fff;
+
+    font-size: 16px;
+    font-weight: 600;
+
+    backdrop-filter: blur(10px);
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease;
+}
+
+#closeCameraBtn:hover {
+    background: rgba(255,255,255,0.15);
+}
+
+#closeCameraBtn:active {
+    transform: scale(0.98);
+}
+
+
+/* =========================================================
+   TORCH
+========================================================= */
+
+#torchBtn {
+    position: absolute;
+
+    top: 14px;
+    left: 14px;
+
+    width: auto;
+
+    padding: 8px 12px;
+
+    background:
+        rgba(0,0,0,0.55);
+
+    border:
+        1px solid
+        rgba(255,255,255,0.2);
+
+    border-radius: 12px;
+
+    color: #fff;
+
+    font-size: 19px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    z-index: 500;
+
+    backdrop-filter: blur(8px);
+
+    transition:
+        background 0.2s ease,
+        transform 0.15s ease;
+}
+
+#torchBtn:active {
+    transform: scale(0.94);
+}
+
+#torchBtn.torch-on {
+    background: rgba(255,210,40,0.28);
+
+    border-color:
+        rgba(255,220,40,0.65);
+}
+
+
+/* =========================================================
+   TAP TO FOCUS
+========================================================= */
+
+#focusIndicator {
+    position: absolute;
+
+    width: 58px;
+    height: 58px;
+
+    border:
+        2px solid #00e5ff;
+
+    border-radius: 50%;
+
+    pointer-events: none;
+
+    transform:
+        translate(-50%, -50%)
+        scale(0.4);
+
+    opacity: 0;
+
+    z-index: 300;
+ }
+
+#focusIndicator.active {
+    animation:
+        focusPulse
+        0.55s
+        ease-out
+        forwards;
+}
+
+@keyframes focusPulse {
+
+    0% {
+        transform:
+            translate(-50%, -50%)
+            scale(0.4);
+
+        opacity: 1;
     }
 
-}
-#reader{
-    width:100%;
-    overflow:hidden;
-    border-radius:22px;
+    60% {
+        transform:
+            translate(-50%, -50%)
+            scale(1);
+
+        opacity: 0.85;
+    }
+
+    100% {
+        transform:
+            translate(-50%, -50%)
+            scale(1.3);
+
+        opacity: 0;
+    }
 }
 
-#reader video{
-    border-radius:22px;
-    object-fit:cover;
+
+/* =========================================================
+   BARCODE CANVAS
+========================================================= */
+
+#barcodeCanvas {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    pointer-events: none;
+
+    border-radius: 22px;
+
+    z-index: 100;
+}
+
+
+/* =========================================================
+   FPS DEBUG
+========================================================= */
+
+#fpsBadge {
+    position: absolute;
+
+    top: 10px;
+    right: 14px;
+
+    padding: 3px 8px;
+
+    background: rgba(0,0,0,0.6);
+
+    color: #00ff00;
+
+    font-family: monospace;
+    font-size: 11px;
+
+    border-radius: 6px;
+
+    pointer-events: none;
+
+    z-index: 9999;
+}
+
+
+/* =========================================================
+   FLASH FEEDBACK
+========================================================= */
+
+@keyframes flashGreen {
+
+    0% {
+        box-shadow:
+            0 0 0 0
+            rgba(34,197,94,0);
+    }
+
+    30% {
+        box-shadow:
+            0 0 0 8px
+            rgba(34,197,94,0.7);
+    }
+
+    100% {
+        box-shadow:
+            0 0 0 0
+            rgba(34,197,94,0);
+    }
+}
+
+@keyframes flashRed {
+
+    0% {
+        box-shadow:
+            0 0 0 0
+            rgba(239,68,68,0);
+    }
+
+    30% {
+        box-shadow:
+            0 0 0 8px
+            rgba(239,68,68,0.8);
+    }
+
+    100% {
+        box-shadow:
+            0 0 0 0
+            rgba(239,68,68,0);
+    }
+}
+
+.flash-green {
+    animation:
+        flashGreen
+        0.35s
+        ease-out
+        forwards;
+}
+
+.flash-red {
+    animation:
+        flashRed
+        0.5s
+        ease-out
+        forwards;
+}
+
+
+/* =========================================================
+   CAMERA STARTUP
+========================================================= */
+
+@keyframes cameraStarting {
+
+    0%, 100% {
+        opacity: 0.65;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+.camera-starting #reader {
+    animation:
+        cameraStarting
+        1s
+        infinite
+        ease-in-out;
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+    .camera-container {
+        padding:
+            max(12px, env(safe-area-inset-top))
+            12px
+            max(12px, env(safe-area-inset-bottom));
+    }
+
+    .camera-container h2 {
+        font-size: 19px;
+        margin: 5px 0 10px;
+    }
+
+    #reader {
+        border-radius: 18px;
+    }
+
+    #reader video {
+        border-radius: 18px;
+    }
+
+    .scan-frame {
+        width: 82%;
+        max-width: 340px;
+    }
+
+    .camera-text {
+        margin: 10px 0 8px;
+        font-size: 13px;
+    }
+
+    #closeCameraBtn {
+        padding: 12px;
+        font-size: 15px;
+    }
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+========================================================= */
+
+@media (max-height: 700px) {
+
+    .camera-container h2 {
+        margin: 2px 0 6px;
+        font-size: 18px;
+    }
+
+    .camera-text {
+        margin: 6px 0;
+    }
+
+    #closeCameraBtn {
+        padding: 10px;
+    }
 }
