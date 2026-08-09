@@ -813,7 +813,7 @@ const DynamsoftEngine = (() => {
             cvRouter       = await Dynamsoft.CVR.CaptureVisionRouter.createInstance();
             
             // Clean up #reader and inject custom UI for DCE to prevent default UI elements (selectors, built-in laser, etc.)
-            readerEl.innerHTML = '<div class="dce-video-container" style="position:relative;width:100%;height:100%;"></div>';
+            readerEl.innerHTML = '<div class="dce-video-container"></div>';
             
             cameraView     = await Dynamsoft.DCE.CameraView.createInstance(readerEl);
             cameraEnhancer = await Dynamsoft.DCE.CameraEnhancer.createInstance(cameraView);
