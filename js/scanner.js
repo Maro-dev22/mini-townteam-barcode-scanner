@@ -171,21 +171,13 @@ async function initializeDynamsoftLicense() {
     console.log("[Scanner License] License initialization requested: YES");
 
     try {
-        const result = await Dynamsoft.License.LicenseManager.initLicense(
-            trialKey,
-            { executeNow: true }
-        );
+        Dynamsoft.License.LicenseManager.initLicense(trialKey);
 
         console.log(
             "[Scanner License] License initialization completed: YES"
         );
 
-        console.log(
-            "[Scanner License] initLicense result:",
-            result
-        );
-
-        await Dynamsoft.Core.CoreModule.loadWasm();
+        await Dynamsoft.Core.CoreModule.loadWasm(["DBR"]);
 
         console.log("[Scanner License] WASM loaded: YES");
 
