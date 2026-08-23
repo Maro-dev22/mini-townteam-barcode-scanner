@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MINI TOWNTEAM - Item Price Details</title>
+
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/responsive.css">
+  <link rel="stylesheet" href="css/camera.css">
+  <link rel="stylesheet" href="css/item-prices.css">
+</head>
+<body>
+  <main class="container price-page">
+    <header>
+      <img src="town.jpeg" alt="MINI TOWNTEAM Logo" class="logo">
+      <h1>ITEM PRICE DETAILS</h1>
+      <p class="version">Promotion Lookup</p>
+    </header>
+
+    <a class="back-link" href="index.html">&larr; Back to Converter</a>
+
+    <section class="card">
+      <h2>Upload Promotion File</h2>
+      <p class="card-help">Upload an Excel file containing a sheet named <strong>1ST</strong>.</p>
+      <input type="file" id="promotionFile" accept=".xlsx,.xls,.xlsm,.xlsb">
+      <p id="fileStatus" class="page-status" role="status" aria-live="polite">No promotion file uploaded.</p>
+    </section>
+
+    <section class="card">
+      <h2>Find Item</h2>
+      <button id="scanBtn" type="button">Scan Item</button>
+      <input
+        type="text"
+        id="itemCodeInput"
+        placeholder="Scan or Enter Barcode / Item Code"
+        autocomplete="off">
+      <button id="searchPromotionBtn" type="button">Search</button>
+    </section>
+
+    <section id="resultCard" class="card result-card" hidden aria-live="polite">
+      <h2>Promotion Result</h2>
+      <div class="result-row">
+        <span>Item Code</span>
+        <strong id="resultItemCode">—</strong>
+      </div>
+      <div class="result-row">
+        <span>Promotion Status</span>
+        <strong id="resultPromotion">—</strong>
+      </div>
+    </section>
+  </main>
+
+  <div id="cameraOverlay" class="camera-overlay" aria-hidden="true">
+    <div class="camera-container">
+      <div class="camera-header">
+        <h2>Scan Barcode</h2>
+      </div>
+      <div class="camera-view">
+        <div id="reader"></div>
+        <div class="scan-frame"><div class="scan-line"></div></div>
+        <div class="camera-hint">Place barcode inside the frame</div>
+      </div>
+      <button id="closeCameraBtn" type="button">Stop Camera</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-barcode-reader-bundle@11.4.3000/dist/dbr.bundle.js"></script>
+  <script src="js/item-prices.js"></script>
+  <script src="js/scanner.js"></script>
+</body>
+</html>
