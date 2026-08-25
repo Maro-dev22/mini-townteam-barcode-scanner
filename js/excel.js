@@ -10,6 +10,8 @@ const missionFile = document.getElementById("missionFile");
 
 window.barcodeMap = new Map();
 window.missionMap = new Map();
+window.missionItems = [];
+window.missionTotalRequired = 0;
 window.excelData = [];
 window.missionFileName = "";
 window.missionSheetName = "Sheet1";
@@ -50,14 +52,16 @@ fetch("data/master.json")
 // الملف اليومي
 // =========================
 
-missionFile.addEventListener("change", readMissionFile);
+if (missionFile) {
+    missionFile.addEventListener("change", readMissionFile);
+}
 
 function readMissionFile(event) {
 
     const file = event.target.files[0];
 
     if (!file) return;
-    
+
     window.missionFileName = file.name;
 
     const reader = new FileReader();
@@ -67,13 +71,13 @@ function readMissionFile(event) {
         const data = new Uint8Array(e.target.result);
 
         const workbook = XLSX.read(data, { type: "array" });
-        
+
         window.missionSheetName = workbook.SheetNames[0];
 
         const sheet = workbook.Sheets[window.missionSheetName];
 
         const rows = XLSX.utils.sheet_to_json(sheet);
-        
+
         const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         if (rawRows.length > 0) {
             window.missionHeaders = rawRows[0];
@@ -83,7 +87,7 @@ function readMissionFile(event) {
 
         if (
             !firstRow ||
-            !firstRow.hasOwnProperty("Item Code") ||
+            (!firstRow.hasOwnProperty("Item Code") && !firstRow.hasOwnProperty("itemid")) ||
             !firstRow.hasOwnProperty("Color") ||
             !firstRow.hasOwnProperty("Size")
         ) {
@@ -91,42 +95,69 @@ function readMissionFile(event) {
             alert("❌ Invalid Mission file.\nPlease use the official MINI TOWNTEAM template.");
 
             window.missionMap.clear();
+            window.missionItems = [];
             window.excelData = [];
 
-            missionFile.value = "";
+            if (missionFile) missionFile.value = "";
 
             return;
 
         }
 
         window.missionMap.clear();
+        window.missionItems = [];
+
+        let lastItemCode = "";
+        const variantMap = new Map();
 
         rows.forEach(row => {
+            let rawCode = row["Item Code"] !== undefined ? row["Item Code"] : row["itemid"];
+            let itemCode = String(rawCode || "").trim();
 
-            const itemCode = String(row["Item Code"]).trim();
-
-            const color = String(row["Color"]).trim();
-
-            const size = String(row["Size"]).trim();
-
-            if (!window.missionMap.has(itemCode)) {
-
-                window.missionMap.set(itemCode, []);
-
+            // Fill-down normalization for blank/merged Item Code cells
+            if (!itemCode) {
+                itemCode = lastItemCode;
+            } else {
+                lastItemCode = itemCode;
             }
 
-            window.missionMap.get(itemCode).push({
+            if (!itemCode) return;
 
-                color,
-                size
+            const color = String(row["Color"] || "").trim();
+            const size = String(row["Size"] || "").trim();
+            const parsedQty = Number(row["Qty"]);
+            const qty = Number.isInteger(parsedQty) && parsedQty > 0 ? parsedQty : 1;
 
-            });
+            const key = `${itemCode}|${color}|${size}`;
 
+            let variant = variantMap.get(key);
+            if (!variant) {
+                variant = {
+                    itemCode,
+                    color,
+                    size,
+                    requiredQty: 0,
+                    scannedQty: 0,
+                    sourceRow: { ...row, "Item Code": itemCode, Color: color, Size: size }
+                };
+                variantMap.set(key, variant);
+                window.missionItems.push(variant);
+
+                if (!window.missionMap.has(itemCode)) {
+                    window.missionMap.set(itemCode, []);
+                }
+                window.missionMap.get(itemCode).push(variant);
+            }
+
+            variant.requiredQty += qty;
         });
 
+        window.missionTotalRequired = window.missionItems.reduce((sum, item) => sum + item.requiredQty, 0);
         window.excelData = rows;
 
-        console.log("Mission Products:", window.missionMap.size);
+        if (window.resetMissionProgress) {
+            window.resetMissionProgress();
+        }
 
         alert("Mission Loaded Successfully ✅");
 

@@ -17,27 +17,33 @@ let currentColor = "";
 
 let collected = 0;
 
-// هنستخدمها بعدين لما يبقى الاختيار بالكود + اللون + المقاس
-const scannedItems = new Set();
-
 // =========================
 // Dashboard & Progress UI
 // =========================
 window.updateDashboard = function() {
-    const total = window.excelData ? window.excelData.length : 0;
+    const total = window.missionTotalRequired || (window.excelData ? window.excelData.length : 0);
     const remaining = Math.max(0, total - collected);
-    
+
     const progressBar = document.getElementById("progressBar");
     const remainingCounter = document.getElementById("remainingCounter");
     const totalCounter = document.getElementById("totalCounter");
-    
+
     if (remainingCounter) remainingCounter.textContent = `Remaining: ${remaining}`;
     if (totalCounter) totalCounter.textContent = `Total: ${total}`;
-    
+
     if (progressBar) {
         const percent = total > 0 ? (collected / total) * 100 : 0;
         progressBar.style.width = `${percent}%`;
     }
+};
+
+window.resetMissionProgress = function() {
+    collected = 0;
+    selectedCount = 0;
+    currentResults = [];
+    currentColor = "";
+    if (counterText) counterText.textContent = `0 / ${window.missionTotalRequired || 0}`;
+    window.updateDashboard();
 };
 
 window.updateLastScanned = function(text) {
@@ -51,10 +57,10 @@ window.updateLastScanned = function(text) {
 // Status Function
 // =========================
 function setStatus(message, className) {
-
-    statusText.textContent = message;
-    statusText.className = className;
-
+    if (statusText) {
+        statusText.textContent = message;
+        statusText.className = className;
+    }
 }
 
 window.setStatus = setStatus;
@@ -62,15 +68,17 @@ window.setStatus = setStatus;
 // =========================
 // Barcode Input
 // =========================
-barcodeInput.addEventListener("keydown", function (e) {
+if (barcodeInput) {
+    barcodeInput.addEventListener("keydown", function (e) {
 
-    if (e.key === "Enter") {
+        if (e.key === "Enter") {
 
-        searchBarcode(barcodeInput.value);
+            searchBarcode(barcodeInput.value);
 
-    }
+        }
 
-});
+    });
+}
 
 // =========================
 // Search Function
@@ -97,65 +105,68 @@ window.searchBarcode = function (barcode) {
 
     }
 
+    let itemCode = null;
     const product = window.barcodeMap.get(barcode);
 
-    if (!product) {
+    if (product) {
+        itemCode = product.itemCode;
+    } else if (window.missionMap.has(barcode)) {
+        itemCode = barcode;
+    }
 
-        itemCodeValue.textContent = "-----";
-        colorValue.textContent = "-----";
-        sizeValue.textContent = "-----";
+    if (!itemCode) {
 
-        optionsBox.style.display = "none";
+        if (itemCodeValue) itemCodeValue.textContent = "-----";
+        if (colorValue) colorValue.textContent = "-----";
+        if (sizeValue) sizeValue.textContent = "-----";
+
+        if (optionsBox) optionsBox.style.display = "none";
 
         setStatus("🔴 BARCODE NOT FOUND", "not-found");
         window.onScanError?.();
 
-        barcodeInput.value = "";
-        barcodeInput.focus();
+        if (barcodeInput) {
+            barcodeInput.value = "";
+            barcodeInput.focus();
+        }
 
         return;
 
     }
 
-    const itemCode = product.itemCode;
-
     const missionItems = window.missionMap.get(itemCode);
 
-    if (!missionItems) {
+    if (!missionItems || missionItems.length === 0) {
 
-        itemCodeValue.textContent = "-----";
-        colorValue.textContent = "-----";
-        sizeValue.textContent = "-----";
+        if (itemCodeValue) itemCodeValue.textContent = "-----";
+        if (colorValue) colorValue.textContent = "-----";
+        if (sizeValue) sizeValue.textContent = "-----";
 
-        optionsBox.style.display = "none";
+        if (optionsBox) optionsBox.style.display = "none";
 
         setStatus("🔴 NOT FOUND", "not-found");
         window.onScanError?.();
 
-        barcodeInput.value = "";
-        barcodeInput.focus();
+        if (barcodeInput) {
+            barcodeInput.value = "";
+            barcodeInput.focus();
+        }
 
         return;
 
     }
 
-    itemCodeValue.textContent = itemCode;
-    colorValue.textContent = "-----";
-    sizeValue.textContent = "-----";
+    if (itemCodeValue) itemCodeValue.textContent = itemCode;
+    if (colorValue) colorValue.textContent = "-----";
+    if (sizeValue) sizeValue.textContent = "-----";
 
     currentResults = missionItems;
     currentColor = "";
 
-    const sizeView = missionItems.map(item => ({
-        ...item,
-        Color: item.color,
-        Size: item.size
-    }));
+    if (colorOptions) colorOptions.innerHTML = "";
+    if (sizeOptions) sizeOptions.innerHTML = "";
 
-    colorOptions.innerHTML = "";
-    sizeOptions.innerHTML = "";
-
-    optionsBox.style.display = "block";
+    if (optionsBox) optionsBox.style.display = "block";
 
     const colors = [...new Set(
 
@@ -165,7 +176,7 @@ window.searchBarcode = function (barcode) {
 
     if (colors.length === 1) {
 
-        showSizes(sizeView, colors[0]);
+        showSizes(missionItems, colors[0]);
 
     } else {
 
@@ -185,11 +196,11 @@ window.searchBarcode = function (barcode) {
 
                 btn.classList.add("active");
 
-                showSizes(sizeView, color);
+                showSizes(missionItems, color);
 
             };
 
-            colorOptions.appendChild(btn);
+            if (colorOptions) colorOptions.appendChild(btn);
 
         });
 
@@ -198,154 +209,159 @@ window.searchBarcode = function (barcode) {
     setStatus("🟢 FOUND", "found");
     window.onScanSuccess?.();
 
-    barcodeInput.value = "";
-
-    barcodeInput.focus();
+    if (barcodeInput) {
+        barcodeInput.value = "";
+        barcodeInput.focus();
+    }
 
 };
 
- function showSizes(results, color) {
-selectedCount = 0;
+function showSizes(results, color) {
+    selectedCount = 0;
 
-confirmBtn.disabled = true;
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = "✅ Confirm Selection";
+        confirmBtn.style.display = "block";
+    }
 
-confirmBtn.textContent = "✅ Confirm Selection";
-currentResults = results;
-currentColor = color;
+    currentResults = results;
+    currentColor = color;
 
-colorValue.textContent = color;
-
-confirmBtn.style.display = "block";
-    sizeOptions.innerHTML = "";
+    if (colorValue) colorValue.textContent = color;
+    if (sizeOptions) sizeOptions.innerHTML = "";
 
     const sizes = [...new Set(
         results
-            .filter(item => item.Color === color)
-            .map(item => item.Size)
+            .filter(item => item.color === color)
+            .map(item => item.size)
     )];
 
     sizes.forEach(size => {
 
         const btn = document.createElement("button");
 
-        btn.textContent = size;
-
         btn.className = "size-btn";
+        btn.dataset.size = size;
 
-     const key = `${itemCodeValue.textContent}-${color}-${size}`;
+        const variant = results.find(item => item.color === color && item.size === size);
 
-if (scannedItems.has(key)) {
+        if (variant && variant.scannedQty >= variant.requiredQty) {
 
-    btn.classList.add("collected");
+            btn.classList.add("collected");
 
-    btn.disabled = true;
+            btn.disabled = true;
 
-}
+        }
 
-        btn.dataset.selected = "false";
-
-      btn.onclick = () => {
-
-    if (btn.disabled) return;
-
-    if (btn.dataset.selected === "false") {
-
-        btn.dataset.selected = "true";
-
-        btn.classList.add("selected");
-
-        selectedCount++;
-
-    } else {
+        btn.textContent = variant ? `${size} (${variant.scannedQty}/${variant.requiredQty})` : size;
 
         btn.dataset.selected = "false";
 
-        btn.classList.remove("selected");
+        btn.onclick = () => {
 
-        selectedCount--;
+            if (btn.disabled) return;
 
-    }
+            if (btn.dataset.selected === "false") {
 
-    if (selectedCount > 0) {
+                btn.dataset.selected = "true";
 
-        confirmBtn.disabled = false;
+                btn.classList.add("selected");
 
-        confirmBtn.textContent =
-            `✅ Confirm (${selectedCount})`;
+                selectedCount++;
 
-    } else {
+            } else {
 
-        confirmBtn.disabled = true;
+                btn.dataset.selected = "false";
 
-        confirmBtn.textContent =
-            "✅ Confirm Selection";
+                btn.classList.remove("selected");
 
-    }
+                selectedCount--;
 
-};
+            }
 
-        sizeOptions.appendChild(btn);
+            if (confirmBtn) {
+                if (selectedCount > 0) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = `✅ Confirm (${selectedCount})`;
+                } else {
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = "✅ Confirm Selection";
+                }
+            }
+
+        };
+
+        if (sizeOptions) sizeOptions.appendChild(btn);
 
     });
 
 }
 
-confirmBtn.addEventListener("click", () => {
+if (confirmBtn) {
+    confirmBtn.addEventListener("click", () => {
 
-    const selectedButtons = document.querySelectorAll(".size-btn.selected");
+        const selectedButtons = document.querySelectorAll(".size-btn.selected");
 
-    if(selectedButtons.length===0){
+        if (selectedButtons.length === 0) {
 
-        alert("Choose at least one size");
+            alert("Choose at least one size");
 
-        return;
+            return;
 
-    }
+        }
 
-    selectedButtons.forEach(btn=>{
+        selectedButtons.forEach(btn => {
 
-        selectedCount = 0;
+            selectedCount = 0;
 
-confirmBtn.disabled = true;
+            confirmBtn.disabled = true;
 
-confirmBtn.textContent =
-"✅ Confirm Selection";
+            confirmBtn.textContent = "✅ Confirm Selection";
 
-barcodeInput.value = "";
+            if (barcodeInput) {
+                barcodeInput.value = "";
+                barcodeInput.focus();
+            }
 
-barcodeInput.focus();
+            const size = btn.dataset.size || btn.textContent;
+            const variant = currentResults.find(item => item.color === currentColor && item.size === size);
 
-setStatus(
-`✅ ${selectedButtons.length} Piece(s) Collected`,
-"found"
-);
+            if (variant) {
+                if (variant.scannedQty < variant.requiredQty) {
+                    variant.scannedQty += 1;
+                    collected += 1;
+                }
 
-setTimeout(()=>{
+                const isComplete = variant.scannedQty >= variant.requiredQty;
 
-    setStatus("🟡 Ready","");
+                btn.classList.remove("selected");
+                if (isComplete) {
+                    btn.classList.add("collected");
+                    btn.disabled = true;
+                }
 
-},2000);
+                btn.textContent = `${variant.size} (${variant.scannedQty}/${variant.requiredQty})`;
 
-        const key = `${itemCodeValue.textContent}-${currentColor}-${btn.textContent}`;
+                setStatus(
+                    isComplete
+                        ? `✅ Item complete: ${variant.scannedQty}/${variant.requiredQty}`
+                        : `✅ Scanned: ${variant.scannedQty}/${variant.requiredQty}`,
+                    "found"
+                );
 
-        scannedItems.add(key);
+                window.updateDashboard();
+                window.updateLastScanned(`${variant.itemCode}-${variant.color}-${variant.size}`);
+            }
 
-        btn.classList.remove("selected");
+        });
 
-        btn.classList.add("collected");
-
-        btn.disabled=true;
-
-        collected++;
-        window.updateDashboard();
-        window.updateLastScanned(key);
+        if (counterText) {
+            counterText.textContent = `${collected} / ${window.missionTotalRequired || window.excelData.length}`;
+        }
 
     });
-
-    counterText.textContent =
-    `${collected} / ${window.excelData.length}`;
-
-});
+}
 
 // =========================
 // Export Mission
@@ -365,20 +381,12 @@ if (exportBtn) {
 
         setTimeout(() => {
             try {
-                const remainingData = [];
-
-                for (let i = 0; i < window.excelData.length; i++) {
-                    const row = window.excelData[i];
-                    const itemCode = String(row["Item Code"] || "").trim();
-                    const color = String(row["Color"] || "").trim();
-                    const size = String(row["Size"] || "").trim();
-                    
-                    const key = `${itemCode}-${color}-${size}`;
-
-                    if (!scannedItems.has(key)) {
-                        remainingData.push(row);
-                    }
-                }
+                const remainingData = (window.missionItems || [])
+                    .filter(item => item.scannedQty < item.requiredQty)
+                    .map(item => ({
+                        ...item.sourceRow,
+                        Qty: item.requiredQty - item.scannedQty
+                    }));
 
                 if (remainingData.length === 0) {
                     alert("Mission Completed.\nNothing to export.");
@@ -388,7 +396,10 @@ if (exportBtn) {
                 }
 
                 // Create a new worksheet keeping original headers
-                const ws = XLSX.utils.json_to_sheet(remainingData, { header: window.missionHeaders });
+                const exportHeaders = window.missionHeaders && window.missionHeaders.includes("Qty")
+                    ? window.missionHeaders
+                    : [...(window.missionHeaders || []), "Qty"];
+                const ws = XLSX.utils.json_to_sheet(remainingData, { header: exportHeaders });
 
                 // Create a new workbook
                 const wb = XLSX.utils.book_new();
