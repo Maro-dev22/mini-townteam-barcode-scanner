@@ -17,7 +17,7 @@
 
 const CONFIG = {
     // Current Dynamsoft 30-day trial key.
-    LICENSE_KEY: "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA2MDkwNzI1LU1UQTJNRGt3TnpJMUxYZGxZaTFVY21saGJGQnliMm8iLCJtYWluU2VydmVyVVJMIjoiaHR0cHM6Ly9tZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwib3JnYW5pemF0aW9uSUQiOiIxMDYwOTA3MjUiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwiY2hlY2tDb2RlIjoxNDk3OTEwNjA1fQ==",
+    LICENSE_KEY: "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTA2MzcwNTczLU1UQTJNemN3TlRjekxYZGxZaTFVY21saGJGQnliMm8iLCJtYWluU2VydmVyVVJMIjoiaHR0cHM6Ly9tZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwib3JnYW5pemF0aW9uSUQiOiIxMDYzNzA1NzMiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zZGxzLmR5bmFtc29mdG9ubGluZS5jb20vIiwiY2hlY2tDb2RlIjoxMDc5NDI2MzQyfQ====",
 
     // Fallback CDN (loaded only if Dynamsoft fails)
     HTML5QRCODE_CDN: "https://unpkg.com/html5-qrcode",
