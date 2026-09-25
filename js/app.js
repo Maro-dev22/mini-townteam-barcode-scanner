@@ -3,9 +3,10 @@ const barcodeInput = document.getElementById("barcodeInput");
 const statusText = document.getElementById("status");
 const counterText = document.getElementById("counter");
 
-const barcodeValue = document.getElementById("barcodeValue");
+const itemCodeValue = document.getElementById("itemCodeValue");
 const colorValue = document.getElementById("colorValue");
 const sizeValue = document.getElementById("sizeValue");
+const toValue = document.getElementById("toValue");
 const optionsBox = document.getElementById("optionsBox");
 const colorOptions = document.getElementById("colorOptions");
 const sizeOptions = document.getElementById("sizeOptions");
@@ -17,17 +18,54 @@ let currentColor = "";
 
 let collected = 0;
 
-// هنستخدمها بعدين لما يبقى الاختيار بالكود + اللون + المقاس
-const scannedItems = new Set();
+// =========================
+// Dashboard & Progress UI
+// =========================
+window.updateDashboard = function() {
+    const total = window.missionTotalRequired || (window.excelData ? window.excelData.length : 0);
+    const remaining = Math.max(0, total - collected);
+
+    const progressBar = document.getElementById("progressBar");
+    const remainingCounter = document.getElementById("remainingCounter");
+    const totalCounter = document.getElementById("totalCounter");
+
+    if (remainingCounter) remainingCounter.textContent = `Remaining: ${remaining}`;
+    if (totalCounter) totalCounter.textContent = `Total: ${total}`;
+
+    if (progressBar) {
+        const percent = total > 0 ? (collected / total) * 100 : 0;
+        progressBar.style.width = `${percent}%`;
+    }
+};
+
+window.resetMissionProgress = function() {
+    collected = 0;
+    selectedCount = 0;
+    currentResults = [];
+    currentColor = "";
+    if (counterText) counterText.textContent = `0 / ${window.missionTotalRequired || 0}`;
+    if (itemCodeValue) itemCodeValue.textContent = "-----";
+    if (colorValue) colorValue.textContent = "-----";
+    if (sizeValue) sizeValue.textContent = "-----";
+    if (toValue) toValue.textContent = "-----";
+    window.updateDashboard();
+};
+
+window.updateLastScanned = function(text) {
+    const lastScanned = document.getElementById("lastScannedItem");
+    if (lastScanned) {
+        lastScanned.textContent = text;
+    }
+};
 
 // =========================
 // Status Function
 // =========================
 function setStatus(message, className) {
-
-    statusText.textContent = message;
-    statusText.className = className;
-
+    if (statusText) {
+        statusText.textContent = message;
+        statusText.className = className;
+    }
 }
 
 window.setStatus = setStatus;
@@ -35,15 +73,17 @@ window.setStatus = setStatus;
 // =========================
 // Barcode Input
 // =========================
-barcodeInput.addEventListener("keydown", function (e) {
+if (barcodeInput) {
+    barcodeInput.addEventListener("keydown", function (e) {
 
-    if (e.key === "Enter") {
+        if (e.key === "Enter") {
 
-        searchBarcode(barcodeInput.value);
+            searchBarcode(barcodeInput.value);
 
-    }
+        }
 
-});
+    });
+}
 
 // =========================
 // Search Function
@@ -54,223 +94,361 @@ window.searchBarcode = function (barcode) {
 
     if (barcode === "") return;
 
-    if (!window.excelData || window.excelData.length === 0) {
+    if (window.barcodeMap.size === 0) {
 
-        alert("Please upload the Excel file first.");
+        alert("Please upload Database first.");
 
         return;
 
     }
 
-    // البحث برقم الموديل (مثال: 76658)
-    const results = window.excelData.filter(item => {
+    if (window.missionMap.size === 0) {
 
-        const modelCode = String(item.Barcode)
-            .match(/\d{5}/)?.[0];
+        alert("Please upload Mission file first.");
 
-        return modelCode === barcode;
-
-    });
-
-    if (results.length > 0) {
-
-        console.log(results);
-
-        // استخراج الألوان بدون تكرار
-        const colors = [...new Set(results.map(item => item.Color))];
-
-        // استخراج المقاسات بدون تكرار
-        const sizes = [...new Set(results.map(item => item.Size))];
-
-      barcodeValue.textContent = barcode;
-
-      colorValue.textContent = "-";
-      sizeValue.textContent = "-";
-
-       optionsBox.style.display = "block";
-
-       colorOptions.innerHTML = "";
-       sizeOptions.innerHTML = "";
-       colors.forEach(color => {
-
-    const btn = document.createElement("button");
-
-    btn.textContent = color;
-
-    btn.className = "color-btn";
-
-    btn.onclick = () => {
-
-        document.querySelectorAll(".color-btn").forEach(b => {
-            b.classList.remove("active");
-        });
-
-        btn.classList.add("active");
-
-        showSizes(results, color);
-
-    };
-
-    colorOptions.appendChild(btn);
-
-});
-
-        setStatus(`🟢 ${results.length} Item(s) Found`, "found");
-
-        // مؤقتاً مش هنزود العداد
-        counterText.textContent =
-            `${collected} / ${window.excelData.length}`;
-
-    } else {
-
-        barcodeValue.textContent = barcode;
-        colorValue.textContent = "-";
-        sizeValue.textContent = "-";
-
-        setStatus("🔴 Not Found", "not-found");
+        return;
 
     }
 
-    barcodeInput.value = "";
-    barcodeInput.focus();
+    let itemCode = null;
+    const product = window.barcodeMap.get(barcode);
+
+    if (product) {
+        itemCode = product.itemCode;
+    } else if (window.missionMap.has(barcode)) {
+        itemCode = barcode;
+    }
+
+    if (!itemCode) {
+
+        if (itemCodeValue) itemCodeValue.textContent = "-----";
+        if (colorValue) colorValue.textContent = "-----";
+        if (sizeValue) sizeValue.textContent = "-----";
+        if (toValue) toValue.textContent = "-----";
+
+        if (optionsBox) optionsBox.style.display = "none";
+
+        setStatus("🔴 BARCODE NOT FOUND", "not-found");
+        window.onScanError?.();
+
+        if (barcodeInput) {
+            barcodeInput.value = "";
+            barcodeInput.focus();
+        }
+
+        return;
+
+    }
+
+    const missionItems = window.missionMap.get(itemCode);
+
+    if (!missionItems || missionItems.length === 0) {
+
+        if (itemCodeValue) itemCodeValue.textContent = "-----";
+        if (colorValue) colorValue.textContent = "-----";
+        if (sizeValue) sizeValue.textContent = "-----";
+        if (toValue) toValue.textContent = "-----";
+
+        if (optionsBox) optionsBox.style.display = "none";
+
+        setStatus("🔴 NOT FOUND", "not-found");
+        window.onScanError?.();
+
+        if (barcodeInput) {
+            barcodeInput.value = "";
+            barcodeInput.focus();
+        }
+
+        return;
+
+    }
+
+    if (itemCodeValue) itemCodeValue.textContent = itemCode;
+    if (colorValue) colorValue.textContent = "-----";
+    if (sizeValue) sizeValue.textContent = "-----";
+    const defaultTo = missionItems[0]?.to || "-----";
+    if (toValue) toValue.textContent = defaultTo || "-----";
+
+    currentResults = missionItems;
+    currentColor = "";
+
+    if (colorOptions) colorOptions.innerHTML = "";
+    if (sizeOptions) sizeOptions.innerHTML = "";
+
+    if (optionsBox) optionsBox.style.display = "block";
+
+    const colors = [...new Set(
+
+        missionItems.map(item => item.color)
+
+    )];
+
+    if (colors.length === 1) {
+
+        showSizes(missionItems, colors[0]);
+
+    } else {
+
+        colors.forEach(color => {
+
+            const btn = document.createElement("button");
+
+            btn.textContent = color;
+
+            btn.className = "color-btn";
+
+            btn.onclick = () => {
+
+                document
+                    .querySelectorAll(".color-btn")
+                    .forEach(b => b.classList.remove("active"));
+
+                btn.classList.add("active");
+
+                showSizes(missionItems, color);
+
+            };
+
+            if (colorOptions) colorOptions.appendChild(btn);
+
+        });
+
+    }
+
+    setStatus("🟢 FOUND", "found");
+    window.onScanSuccess?.();
+
+    if (barcodeInput) {
+        barcodeInput.value = "";
+        barcodeInput.focus();
+    }
 
 };
 
 function showSizes(results, color) {
-selectedCount = 0;
+    selectedCount = 0;
 
-confirmBtn.disabled = true;
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = "✅ Confirm Selection";
+        confirmBtn.style.display = "block";
+    }
 
-confirmBtn.textContent = "✅ Confirm Selection";
-currentResults = results;
-currentColor = color;
+    currentResults = results;
+    currentColor = color;
 
-confirmBtn.style.display = "block";
-    sizeOptions.innerHTML = "";
+    if (colorValue) colorValue.textContent = color;
+    const matchingVariant = results.find(item => item.color === color);
+    if (toValue && matchingVariant) {
+        toValue.textContent = matchingVariant.to || "-----";
+    }
+    if (sizeOptions) sizeOptions.innerHTML = "";
 
     const sizes = [...new Set(
         results
-            .filter(item => item.Color === color)
-            .map(item => item.Size)
+            .filter(item => item.color === color)
+            .map(item => item.size)
     )];
 
     sizes.forEach(size => {
 
         const btn = document.createElement("button");
 
-        btn.textContent = size;
-
         btn.className = "size-btn";
+        btn.dataset.size = size;
 
-     const key = `${barcodeValue.textContent}-${color}-${size}`;
+        const variant = results.find(item => item.color === color && item.size === size);
 
-if (scannedItems.has(key)) {
+        if (variant && variant.scannedQty >= variant.requiredQty) {
 
-    btn.classList.add("collected");
+            btn.classList.add("collected");
 
-    btn.disabled = true;
+            btn.disabled = true;
 
-}
+        }
 
-        btn.dataset.selected = "false";
-
-      btn.onclick = () => {
-
-    if (btn.disabled) return;
-
-    if (btn.dataset.selected === "false") {
-
-        btn.dataset.selected = "true";
-
-        btn.classList.add("selected");
-
-        selectedCount++;
-
-    } else {
+        btn.textContent = variant ? `${size} (${variant.scannedQty}/${variant.requiredQty})` : size;
 
         btn.dataset.selected = "false";
 
-        btn.classList.remove("selected");
+        btn.onclick = () => {
 
-        selectedCount--;
+            if (btn.disabled) return;
 
-    }
+            if (btn.dataset.selected === "false") {
 
-    if (selectedCount > 0) {
+                btn.dataset.selected = "true";
 
-        confirmBtn.disabled = false;
+                btn.classList.add("selected");
 
-        confirmBtn.textContent =
-            `✅ Confirm (${selectedCount})`;
+                selectedCount++;
 
-    } else {
+            } else {
 
-        confirmBtn.disabled = true;
+                btn.dataset.selected = "false";
 
-        confirmBtn.textContent =
-            "✅ Confirm Selection";
+                btn.classList.remove("selected");
 
-    }
+                selectedCount--;
 
-};
+            }
 
-        sizeOptions.appendChild(btn);
+            if (confirmBtn) {
+                if (selectedCount > 0) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = `✅ Confirm (${selectedCount})`;
+                } else {
+                    confirmBtn.disabled = true;
+                    confirmBtn.textContent = "✅ Confirm Selection";
+                }
+            }
+
+        };
+
+        if (sizeOptions) sizeOptions.appendChild(btn);
 
     });
 
 }
 
-confirmBtn.addEventListener("click", () => {
+if (confirmBtn) {
+    confirmBtn.addEventListener("click", () => {
 
-    const selectedButtons = document.querySelectorAll(".size-btn.selected");
+        const selectedButtons = document.querySelectorAll(".size-btn.selected");
 
-    if(selectedButtons.length===0){
+        if (selectedButtons.length === 0) {
 
-        alert("Choose at least one size");
+            alert("Choose at least one size");
 
-        return;
+            return;
 
-    }
+        }
 
-    selectedButtons.forEach(btn=>{
+        selectedButtons.forEach(btn => {
 
-        selectedCount = 0;
+            selectedCount = 0;
 
-confirmBtn.disabled = true;
+            confirmBtn.disabled = true;
 
-confirmBtn.textContent =
-"✅ Confirm Selection";
+            confirmBtn.textContent = "✅ Confirm Selection";
 
-barcodeInput.value = "";
+            if (barcodeInput) {
+                barcodeInput.value = "";
+                barcodeInput.focus();
+            }
 
-barcodeInput.focus();
+            const size = btn.dataset.size || btn.textContent;
+            const variant = currentResults.find(item => item.color === currentColor && item.size === size);
 
-setStatus(
-`✅ ${selectedButtons.length} Piece(s) Collected`,
-"found"
-);
+            if (variant) {
+                if (toValue) {
+                    toValue.textContent = variant.to || "-----";
+                }
 
-setTimeout(()=>{
+                if (variant.scannedQty < variant.requiredQty) {
+                    variant.scannedQty += 1;
+                    collected += 1;
+                }
 
-    setStatus("🟡 Ready","");
+                const isComplete = variant.scannedQty >= variant.requiredQty;
 
-},2000);
+                btn.classList.remove("selected");
+                if (isComplete) {
+                    btn.classList.add("collected");
+                    btn.disabled = true;
+                }
 
-        const key = `${barcodeValue.textContent}-${currentColor}-${btn.textContent}`;
+                btn.textContent = `${variant.size} (${variant.scannedQty}/${variant.requiredQty})`;
 
-        scannedItems.add(key);
+                setStatus(
+                    isComplete
+                        ? `✅ Item complete: ${variant.scannedQty}/${variant.requiredQty}`
+                        : `✅ Scanned: ${variant.scannedQty}/${variant.requiredQty}`,
+                    "found"
+                );
 
-        btn.classList.remove("selected");
+                window.updateDashboard();
+                window.updateLastScanned(`${variant.itemCode}-${variant.color}-${variant.size}`);
+            }
 
-        btn.classList.add("collected");
+        });
 
-        btn.disabled=true;
-
-        collected++;
+        if (counterText) {
+            counterText.textContent = `${collected} / ${window.missionTotalRequired || window.excelData.length}`;
+        }
 
     });
+}
 
-    counterText.textContent =
-    `${collected} / ${window.excelData.length}`;
+// =========================
+// Export Mission
+// =========================
+const exportBtn = document.getElementById("exportBtn");
 
-});
+if (exportBtn) {
+    exportBtn.addEventListener("click", () => {
+        if (!window.excelData || window.excelData.length === 0) {
+            alert("No mission loaded.");
+            return;
+        }
+
+        const originalBtnText = exportBtn.innerHTML;
+        exportBtn.innerHTML = "⏳ Exporting Mission...";
+        exportBtn.disabled = true;
+
+        setTimeout(() => {
+            try {
+                const remainingData = (window.missionItems || [])
+                    .filter(item => item.scannedQty < item.requiredQty)
+                    .map(item => ({
+                        ...item.sourceRow,
+                        Qty: item.requiredQty - item.scannedQty
+                    }));
+
+                if (remainingData.length === 0) {
+                    alert("Mission Completed.\nNothing to export.");
+                    exportBtn.innerHTML = originalBtnText;
+                    exportBtn.disabled = false;
+                    return;
+                }
+
+                // Create a new worksheet keeping original headers
+                const exportHeaders = window.missionHeaders && window.missionHeaders.includes("Qty")
+                    ? window.missionHeaders
+                    : [...(window.missionHeaders || []), "Qty"];
+                const ws = XLSX.utils.json_to_sheet(remainingData, { header: exportHeaders });
+
+                // Create a new workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, window.missionSheetName || "Sheet1");
+
+                // Generate filename
+                let exportName = "Mission_Remaining.xlsx";
+                if (window.missionFileName) {
+                    const nameParts = window.missionFileName.split('.');
+                    if (nameParts.length > 1) {
+                        const ext = nameParts.pop();
+                        exportName = nameParts.join('.') + "_Remaining." + ext;
+                    } else {
+                        exportName = window.missionFileName + "_Remaining.xlsx";
+                    }
+                }
+
+                // Download the file
+                XLSX.writeFile(wb, exportName);
+
+                exportBtn.innerHTML = "✅ Mission exported successfully.";
+                setTimeout(() => {
+                    exportBtn.innerHTML = originalBtnText;
+                    exportBtn.disabled = false;
+                }, 3000);
+
+            } catch (err) {
+                console.error("Export Error:", err);
+                alert("An error occurred while exporting the mission.");
+                exportBtn.innerHTML = originalBtnText;
+                exportBtn.disabled = false;
+            }
+        }, 100); // Short delay to allow UI to render the 'Exporting' state
+    });
+}

@@ -1,17 +1,68 @@
+// =========================
 // عناصر الصفحة
-const excelFile = document.getElementById("excelFile");
+// =========================
 
-// نخزن البيانات بشكل عام ليقدر app.js يستخدمها
+const missionFile = document.getElementById("missionFile");
+
+// =========================
+// Databases
+// =========================
+
+window.barcodeMap = new Map();
+window.missionMap = new Map();
+window.missionItems = [];
+window.missionTotalRequired = 0;
 window.excelData = [];
+window.missionFileName = "";
+window.missionSheetName = "Sheet1";
+window.missionHeaders = [];
 
-// أول ما المستخدم يختار ملف
-excelFile.addEventListener("change", readExcel);
+// =========================
+// تحميل قاعدة البيانات الأساسية تلقائياً
+// =========================
 
-function readExcel(event) {
+fetch("data/master.json")
+    .then(res => res.json())
+    .then(data => {
+
+        data.forEach(item => {
+
+            const barcode = String(item["Barcode"]).trim();
+
+            window.barcodeMap.set(barcode, {
+
+                itemCode: String(item["Item Code"]).trim(),
+                color: String(item["Color"]).trim(),
+                size: String(item["Size"]).trim()
+
+            });
+
+        });
+
+        console.log(`✅ Master Database Loaded: ${window.barcodeMap.size} items`);
+
+    })
+    .catch(err => {
+
+        console.error("❌ Failed to load master.json", err);
+
+    });
+
+// =========================
+// الملف اليومي
+// =========================
+
+if (missionFile) {
+    missionFile.addEventListener("change", readMissionFile);
+}
+
+function readMissionFile(event) {
 
     const file = event.target.files[0];
 
     if (!file) return;
+
+    window.missionFileName = file.name;
 
     const reader = new FileReader();
 
@@ -21,32 +72,109 @@ function readExcel(event) {
 
         const workbook = XLSX.read(data, { type: "array" });
 
-        const sheetName = workbook.SheetNames[0];
+        window.missionSheetName = workbook.SheetNames[0];
 
-        const sheet = workbook.Sheets[sheetName];
+        const sheet = workbook.Sheets[window.missionSheetName];
 
-        window.excelData = XLSX.utils.sheet_to_json(sheet);
-        const firstRow = window.excelData[0];
+        const rows = XLSX.utils.sheet_to_json(sheet);
 
-if (
-    !firstRow ||
-    !firstRow.hasOwnProperty("Barcode") ||
-    !firstRow.hasOwnProperty("Color") ||
-    !firstRow.hasOwnProperty("Size")
-) {
+        const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        if (rawRows.length > 0) {
+            window.missionHeaders = rawRows[0];
+        }
 
-    alert("❌ Invalid Excel file.\nPlease use the official MINI TOWNTEAM template.");
+        const firstRow = rows[0];
 
-    window.excelData = [];
+        if (
+            !firstRow ||
+            (!firstRow.hasOwnProperty("Item Code") && !firstRow.hasOwnProperty("itemid")) ||
+            !firstRow.hasOwnProperty("Color") ||
+            !firstRow.hasOwnProperty("Size")
+        ) {
 
-    excelFile.value = "";
+            alert("❌ Invalid Mission file.\nPlease use the official MINI TOWNTEAM template.");
 
-    return;
-}
+            window.missionMap.clear();
+            window.missionItems = [];
+            window.excelData = [];
 
-        console.log(window.excelData);
+            if (missionFile) missionFile.value = "";
 
-        alert("Excel Loaded Successfully ✅");
+            return;
+
+        }
+
+        window.missionMap.clear();
+        window.missionItems = [];
+
+        let lastItemCode = "";
+        const variantMap = new Map();
+
+        rows.forEach(row => {
+            let rawCode = row["Item Code"] !== undefined ? row["Item Code"] : row["itemid"];
+            let itemCode = String(rawCode || "").trim();
+
+            // Fill-down normalization for blank/merged Item Code cells
+            if (!itemCode) {
+                itemCode = lastItemCode;
+            } else {
+                lastItemCode = itemCode;
+            }
+
+            if (!itemCode) return;
+
+            const color = String(row["Color"] || "").trim();
+            const size = String(row["Size"] || "").trim();
+            const parsedQty = Number(row["Qty"]);
+            const qty = Number.isInteger(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+
+            let toDestination = "";
+            for (const keyName of Object.keys(row)) {
+                const cleanKey = keyName.trim().toLowerCase();
+                if (cleanKey === "to" || cleanKey === "store_name-t" || cleanKey === "destination") {
+                    const val = String(row[keyName] ?? "").trim();
+                    if (val) {
+                        toDestination = val;
+                        break;
+                    }
+                }
+            }
+
+            const key = `${itemCode}|${color}|${size}`;
+
+            let variant = variantMap.get(key);
+            if (!variant) {
+                variant = {
+                    itemCode,
+                    color,
+                    size,
+                    to: toDestination || "",
+                    requiredQty: 0,
+                    scannedQty: 0,
+                    sourceRow: { ...row, "Item Code": itemCode, Color: color, Size: size }
+                };
+                variantMap.set(key, variant);
+                window.missionItems.push(variant);
+
+                if (!window.missionMap.has(itemCode)) {
+                    window.missionMap.set(itemCode, []);
+                }
+                window.missionMap.get(itemCode).push(variant);
+            } else if (!variant.to && toDestination) {
+                variant.to = toDestination;
+            }
+
+            variant.requiredQty += qty;
+        });
+
+        window.missionTotalRequired = window.missionItems.reduce((sum, item) => sum + item.requiredQty, 0);
+        window.excelData = rows;
+
+        if (window.resetMissionProgress) {
+            window.resetMissionProgress();
+        }
+
+        alert("Mission Loaded Successfully ✅");
 
     };
 
