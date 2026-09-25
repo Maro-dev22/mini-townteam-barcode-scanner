@@ -6,6 +6,7 @@ const counterText = document.getElementById("counter");
 const itemCodeValue = document.getElementById("itemCodeValue");
 const colorValue = document.getElementById("colorValue");
 const sizeValue = document.getElementById("sizeValue");
+const toValue = document.getElementById("toValue");
 const optionsBox = document.getElementById("optionsBox");
 const colorOptions = document.getElementById("colorOptions");
 const sizeOptions = document.getElementById("sizeOptions");
@@ -43,6 +44,10 @@ window.resetMissionProgress = function() {
     currentResults = [];
     currentColor = "";
     if (counterText) counterText.textContent = `0 / ${window.missionTotalRequired || 0}`;
+    if (itemCodeValue) itemCodeValue.textContent = "-----";
+    if (colorValue) colorValue.textContent = "-----";
+    if (sizeValue) sizeValue.textContent = "-----";
+    if (toValue) toValue.textContent = "-----";
     window.updateDashboard();
 };
 
@@ -119,6 +124,7 @@ window.searchBarcode = function (barcode) {
         if (itemCodeValue) itemCodeValue.textContent = "-----";
         if (colorValue) colorValue.textContent = "-----";
         if (sizeValue) sizeValue.textContent = "-----";
+        if (toValue) toValue.textContent = "-----";
 
         if (optionsBox) optionsBox.style.display = "none";
 
@@ -141,6 +147,7 @@ window.searchBarcode = function (barcode) {
         if (itemCodeValue) itemCodeValue.textContent = "-----";
         if (colorValue) colorValue.textContent = "-----";
         if (sizeValue) sizeValue.textContent = "-----";
+        if (toValue) toValue.textContent = "-----";
 
         if (optionsBox) optionsBox.style.display = "none";
 
@@ -159,6 +166,8 @@ window.searchBarcode = function (barcode) {
     if (itemCodeValue) itemCodeValue.textContent = itemCode;
     if (colorValue) colorValue.textContent = "-----";
     if (sizeValue) sizeValue.textContent = "-----";
+    const defaultTo = missionItems[0]?.to || "-----";
+    if (toValue) toValue.textContent = defaultTo || "-----";
 
     currentResults = missionItems;
     currentColor = "";
@@ -229,6 +238,10 @@ function showSizes(results, color) {
     currentColor = color;
 
     if (colorValue) colorValue.textContent = color;
+    const matchingVariant = results.find(item => item.color === color);
+    if (toValue && matchingVariant) {
+        toValue.textContent = matchingVariant.to || "-----";
+    }
     if (sizeOptions) sizeOptions.innerHTML = "";
 
     const sizes = [...new Set(
@@ -328,6 +341,10 @@ if (confirmBtn) {
             const variant = currentResults.find(item => item.color === currentColor && item.size === size);
 
             if (variant) {
+                if (toValue) {
+                    toValue.textContent = variant.to || "-----";
+                }
+
                 if (variant.scannedQty < variant.requiredQty) {
                     variant.scannedQty += 1;
                     collected += 1;

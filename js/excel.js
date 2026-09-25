@@ -128,6 +128,18 @@ function readMissionFile(event) {
             const parsedQty = Number(row["Qty"]);
             const qty = Number.isInteger(parsedQty) && parsedQty > 0 ? parsedQty : 1;
 
+            let toDestination = "";
+            for (const keyName of Object.keys(row)) {
+                const cleanKey = keyName.trim().toLowerCase();
+                if (cleanKey === "to" || cleanKey === "store_name-t" || cleanKey === "destination") {
+                    const val = String(row[keyName] ?? "").trim();
+                    if (val) {
+                        toDestination = val;
+                        break;
+                    }
+                }
+            }
+
             const key = `${itemCode}|${color}|${size}`;
 
             let variant = variantMap.get(key);
@@ -136,6 +148,7 @@ function readMissionFile(event) {
                     itemCode,
                     color,
                     size,
+                    to: toDestination || "",
                     requiredQty: 0,
                     scannedQty: 0,
                     sourceRow: { ...row, "Item Code": itemCode, Color: color, Size: size }
@@ -147,6 +160,8 @@ function readMissionFile(event) {
                     window.missionMap.set(itemCode, []);
                 }
                 window.missionMap.get(itemCode).push(variant);
+            } else if (!variant.to && toDestination) {
+                variant.to = toDestination;
             }
 
             variant.requiredQty += qty;
